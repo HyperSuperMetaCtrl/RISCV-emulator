@@ -821,11 +821,114 @@ void test_decode_r_instruction() {
   SUCC_FAIL_RETURN;
 }
 
-void test_decode_i_instruction();
-void test_decode_s_instruction();
-void test_decode_b_instruction();
-void test_decode_u_instruction();
-void test_decode_j_instruction();
+void test_decode_i_instruction() {
+  printf("test_decode_i_instruction(): ");
+  uint16_t imm = 0x7FF;
+  IInstruction ii = {
+      .rs1 = 0x1F,
+      .rd = 0x1F,
+      .funct3 = 0x7,
+      .imm = imm,
+  };
+  uint32_t instruction = 0;
+  instruction = (imm << 20) + (ii.rs1 << 15) + (ii.funct3 << 12) + (ii.rd << 7);
+  IInstruction ii_d = decode_i_instruction(&instruction);
+  TESTEQ(ii.rs1, ii_d.rs1);
+  TESTEQ(ii.rd, ii_d.rd);
+  TESTEQ(ii.funct3, ii_d.funct3);
+  TESTEQ(ii.imm, ii_d.imm);
+  // test also for sign extention
+  imm = 0xFFF;
+  ii.imm = imm;
+  instruction = 0;
+  instruction = (imm << 20) + (ii.rs1 << 15) + (ii.funct3 << 12) + (ii.rd << 7);
+  ii_d = decode_i_instruction(&instruction);
+  TESTEQ(0xFFFFFFFF, ii_d.imm);
+  SUCC_FAIL_RETURN;
+}
+
+void test_decode_s_instruction() {
+  printf("test_decode_s_instruction(): ");
+  SInstruction si = {
+      .rs1 = 0x1F,
+      .rs2 = 0x1F,
+      .funct3 = 0x7,
+      .imm = 0x7FF,
+  };
+  uint32_t instruction = 0;
+  instruction = ((si.imm & 0x1F) << 7) + (si.funct3 << 12) + (si.rs1 << 15) +
+                (si.rs2 << 20) + ((si.imm & 0xFE0) << 20);
+  SInstruction si_d = decode_s_instruction(&instruction);
+  TESTEQ(si.rs1, si_d.rs1);
+  TESTEQ(si.rs2, si_d.rs2);
+  TESTEQ(si.funct3, si_d.funct3);
+  TESTEQ(si.imm, si_d.imm);
+  si.imm = 0xFFF;
+  instruction = 0;
+  instruction = ((si.imm & 0x1F) << 7) + (si.funct3 << 12) + (si.rs1 << 15) +
+                ((si.imm & 0xFE0) << 20);
+  si_d = decode_s_instruction(&instruction);
+  TESTEQ(0xFFFFFFFF, si_d.imm);
+  SUCC_FAIL_RETURN;
+}
+
+void test_decode_b_instruction() {
+  printf("test_decode_b_instruction(): ");
+  BInstruction bi = {
+      .rs1 = 0x1F,
+      .rs2 = 0x1F,
+      .funct3 = 0x7,
+      .imm = 0xFFE,
+  };
+  uint32_t instruction = 0;
+  instruction = (bi.rs1 << 15) + (bi.rs2 << 20) + (bi.funct3 << 12) +
+                ((bi.imm & 0x1000) << 19) + ((bi.imm & 0x7e0) << 20) +
+                ((bi.imm & 0x1E) << 7) + ((bi.imm & 0x800) >> 4);
+  BInstruction bi_d = decode_b_instruction(&instruction);
+  TESTEQ(bi.rs1, bi_d.rs1);
+  TESTEQ(bi.rs2, bi_d.rs2);
+  TESTEQ(bi.funct3, bi_d.funct3);
+  TESTEQ(bi.imm, bi_d.imm);
+  bi.imm = 0x1FFE;
+  instruction = 0;
+  instruction = (bi.rs1 << 15) + (bi.rs2 << 20) + (bi.funct3 << 12) +
+                ((bi.imm & 0x1000) << 19) + ((bi.imm & 0x7e0) << 20) +
+                ((bi.imm & 0x1E) << 7) + ((bi.imm & 0x800) >> 4);
+
+  bi_d = decode_b_instruction(&instruction);
+  TESTEQ(0xFFFFFFFE, bi_d.imm);
+  SUCC_FAIL_RETURN;
+}
+
+void test_decode_u_instruction() {
+  printf("test_decode_u_instruction: ");
+  UInstruction ui = {.rd = 0x1F, .imm = 0xFFFFF000};
+  uint32_t instruction = 0;
+  instruction = (ui.imm) + (ui.rd << 7);
+  UInstruction ui_d = decode_u_instruction(&instruction);
+  TESTEQ(ui.rd, ui_d.rd);
+  TESTEQ(ui.imm, ui_d.imm);
+  SUCC_FAIL_RETURN;
+}
+void test_decode_j_instruction() {
+  printf("test_decode_j_instruction: ");
+  JInstruction ji = {
+      .rd = 0x1F,
+      .imm = 0xFFFFE,
+  };
+  uint32_t instruction = 0;
+  instruction = (ji.rd << 7) + (ji.imm & 0xFF000) + ((ji.imm & 0x800) << 9) +
+                ((ji.imm & 0x7FE) << 20) + ((ji.imm & 0x100000) << 11);
+  JInstruction ji_d = decode_j_instruction(&instruction);
+  TESTEQ(ji.rd, ji_d.rd);
+  TESTEQ(ji.imm, ji_d.imm);
+  ji.imm = 0x1FFFFE;
+  instruction = (ji.rd << 7) + (ji.imm & 0xFF000) + ((ji.imm & 0x800) << 9) +
+                ((ji.imm & 0x7FE) << 20) + ((ji.imm & 0x100000) << 11);
+  ji_d = decode_j_instruction(&instruction);
+  TESTEQ(0xFFFFFFFE, ji_d.imm);
+  SUCC_FAIL_RETURN;
+}
 
 void unit_tests() {
   test_opcode_decode();
