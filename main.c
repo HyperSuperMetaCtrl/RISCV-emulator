@@ -235,6 +235,43 @@ OR = 0x6,
 AND = 0x7
 };
 
+void execute_r_instruction(CPU* cpu, RInstruction *r_instruction) {
+	switch (r_instruction->funct3) {
+		case ADD_SUB:
+			if (r_instruction->funct7 == 0) {
+				add(cpu, r_instruction);
+			} else {
+				sub(cpu, r_instruction);
+			}
+			break;
+		case AND:
+			and(cpu, r_instruction);
+			break;
+		case OR:
+			or(cpu, r_instruction);
+			break;
+		case XOR:
+			xor(cpu, r_instruction);
+			break;
+		case SRL_SRA:
+			if (r_instruction->funct7 == 0) {
+				srl(cpu, r_instruction);
+			} else {
+				sra(cpu, r_instruction);
+			}
+			break;
+		case SLL:
+			sll(cpu, r_instruction);
+			break;
+		case SLT:
+			slt(cpu, r_instruction);
+			break;
+		case SLTU:
+			sltu(cpu, r_instruction);
+			break;
+	}
+}
+
 /**
  * I Instructions
  */
