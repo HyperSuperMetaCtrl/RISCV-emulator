@@ -1,829 +1,923 @@
 
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <stdint.h>
 
-enum opcode_decode {R = 0x33, I = 0x13, S = 0x23, L = 0x03, B = 0x63, JALR = 0x67, JAL = 0x6F, AUIPC = 0x17, LUI = 0x37};
+enum opcode_decode {
+  R = 0x33,
+  I = 0x13,
+  S = 0x23,
+  L = 0x03,
+  B = 0x63,
+  JALR = 0x67,
+  JAL = 0x6F,
+  AUIPC = 0x17,
+  LUI = 0x37
+};
 
 typedef struct {
-    size_t data_mem_size_;
-    uint32_t regfile_[32];
-    uint32_t pc_;
-    uint8_t* instr_mem_;
-    uint8_t* data_mem_;
+  size_t data_mem_size_;
+  uint32_t regfile_[32];
+  uint32_t pc_;
+  uint8_t *instr_mem_;
+  uint8_t *data_mem_;
 } CPU;
 
-void CPU_open_instruction_mem(CPU* cpu, const char* filename);
-void CPU_load_data_mem(CPU* cpu, const char* filename);
+void CPU_open_instruction_mem(CPU *cpu, const char *filename);
+void CPU_load_data_mem(CPU *cpu, const char *filename);
 
-CPU* CPU_init(const char* path_to_inst_mem, const char* path_to_data_mem) {
-	CPU* cpu = (CPU*) malloc(sizeof(CPU));
-	cpu->data_mem_size_ = 0x400000;
-    cpu->pc_ = 0x0;
-    CPU_open_instruction_mem(cpu, path_to_inst_mem);
-    CPU_load_data_mem(cpu, path_to_data_mem);
-    return cpu;
+CPU *CPU_init(const char *path_to_inst_mem, const char *path_to_data_mem) {
+  CPU *cpu = (CPU *)malloc(sizeof(CPU));
+  cpu->data_mem_size_ = 0x400000;
+  cpu->pc_ = 0x0;
+  CPU_open_instruction_mem(cpu, path_to_inst_mem);
+  CPU_load_data_mem(cpu, path_to_data_mem);
+  return cpu;
 }
 
-void CPU_open_instruction_mem(CPU* cpu, const char* filename) {
-	uint32_t  instr_mem_size;
-	FILE* input_file = fopen(filename, "r");
-	if (!input_file) {
-			printf("no input\n");
-			exit(EXIT_FAILURE);
-	}
-	struct stat sb;
-	if (stat(filename, &sb) == -1) {
-			printf("error stat\n");
-			perror("stat");
-		    exit(EXIT_FAILURE);
-	}
-	printf("size of instruction memory: %d Byte\n\n",sb.st_size);
-	instr_mem_size =  sb.st_size;
-	cpu->instr_mem_ = malloc(instr_mem_size);
-	fread(cpu->instr_mem_, sb.st_size, 1, input_file);
-	fclose(input_file);
-	return;
+void CPU_open_instruction_mem(CPU *cpu, const char *filename) {
+  uint32_t instr_mem_size;
+  FILE *input_file = fopen(filename, "r");
+  if (!input_file) {
+    printf("no input\n");
+    exit(EXIT_FAILURE);
+  }
+  struct stat sb;
+  if (stat(filename, &sb) == -1) {
+    printf("error stat\n");
+    perror("stat");
+    exit(EXIT_FAILURE);
+  }
+  printf("size of instruction memory: %d Byte\n\n", sb.st_size);
+  instr_mem_size = sb.st_size;
+  cpu->instr_mem_ = malloc(instr_mem_size);
+  fread(cpu->instr_mem_, sb.st_size, 1, input_file);
+  fclose(input_file);
+  return;
 }
 
-void CPU_load_data_mem(CPU* cpu, const char* filename) {
-	FILE* input_file = fopen(filename, "r");
-	if (!input_file) {
-			printf("no input\n");
-			exit(EXIT_FAILURE);
-	}
-	struct stat sb;
-	if (stat(filename, &sb) == -1) {
-			printf("error stat\n");
-			perror("stat");
-		    exit(EXIT_FAILURE);
-	}
-	printf("read data for data memory: %d Byte\n\n",sb.st_size);
+void CPU_load_data_mem(CPU *cpu, const char *filename) {
+  FILE *input_file = fopen(filename, "r");
+  if (!input_file) {
+    printf("no input\n");
+    exit(EXIT_FAILURE);
+  }
+  struct stat sb;
+  if (stat(filename, &sb) == -1) {
+    printf("error stat\n");
+    perror("stat");
+    exit(EXIT_FAILURE);
+  }
+  printf("read data for data memory: %d Byte\n\n", sb.st_size);
 
-    cpu->data_mem_ = malloc(cpu->data_mem_size_);
-	fread(cpu->data_mem_, sb.st_size, 1, input_file);
-	fclose(input_file);
-	return;
+  cpu->data_mem_ = malloc(cpu->data_mem_size_);
+  fread(cpu->data_mem_, sb.st_size, 1, input_file);
+  fclose(input_file);
+  return;
 }
 /**
  * structs for the different instruction types
  */
 typedef struct {
-	uint8_t rs1;
-	uint8_t rs2;
-	uint8_t rd;
-	uint8_t funct3;
-	uint8_t funct7;
+  uint8_t rs1;
+  uint8_t rs2;
+  uint8_t rd;
+  uint8_t funct3;
+  uint8_t funct7;
 } RInstruction;
 
 typedef struct {
-	uint8_t rs1;
-	uint8_t rd;
-	uint8_t funct3;
-	uint32_t imm;
+  uint8_t rs1;
+  uint8_t rd;
+  uint8_t funct3;
+  uint32_t imm;
 } IInstruction;
 
 typedef struct {
-	uint8_t rs1;
-	uint8_t rs2;
-	uint8_t funct3;
-	uint32_t imm;
+  uint8_t rs1;
+  uint8_t rs2;
+  uint8_t funct3;
+  uint32_t imm;
 } SInstruction;
 
 typedef struct {
-	uint8_t rs1;
-	uint8_t rs2;
-	uint8_t funct3;
-	uint32_t imm;
+  uint8_t rs1;
+  uint8_t rs2;
+  uint8_t funct3;
+  uint32_t imm;
 } BInstruction;
 
 typedef struct {
-	uint8_t rd;
-	uint32_t imm;
+  uint8_t rd;
+  uint32_t imm;
 } UInstruction;
 
 typedef struct {
-	uint8_t rd;
-	uint32_t imm;
+  uint8_t rd;
+  uint32_t imm;
 } JInstruction;
 
 /**
  * Function to extract the opcode from an instruction
  */
-static inline enum opcode_decode decode_opcode(const uint32_t* instruction) {
-	enum opcode_decode opcode;
-	// read the first 7 Bytes of the instruction
-	opcode = (*instruction & 0x7F);
-	return opcode;
+static inline enum opcode_decode decode_opcode(const uint32_t *instruction) {
+  enum opcode_decode opcode;
+  // read the first 7 Bytes of the instruction
+  opcode = (*instruction & 0x7F);
+  return opcode;
 }
 
 /**
  * Function for extracting register operand values from instructions
  */
-enum register_position {RS1, RS2, RD};
-uint8_t decode_register(const uint32_t* instruction, const enum register_position reg_pos) {
-	uint8_t reg_val;
-	switch (reg_pos) {
-	case RS1:
-		reg_val = (*instruction >> 15) & 0x1f;
-		break;
-	case RS2:
-		reg_val = (*instruction >> 20) & 0x1f;
-		break;
-	case RD:
-		reg_val = (*instruction >> 7) & 0x1f;
-		break;
-	}
-	return reg_val;
+enum register_position { RS1, RS2, RD };
+uint8_t decode_register(const uint32_t *instruction,
+                        const enum register_position reg_pos) {
+  uint8_t reg_val;
+  switch (reg_pos) {
+  case RS1:
+    reg_val = (*instruction >> 15) & 0x1f;
+    break;
+  case RS2:
+    reg_val = (*instruction >> 20) & 0x1f;
+    break;
+  case RD:
+    reg_val = (*instruction >> 7) & 0x1f;
+    break;
+  }
+  return reg_val;
 }
 
-uint8_t decode_funct3(const uint32_t* instruction) {
-	uint8_t funct = (*instruction >> 12) & 0x7;
-	return funct;
+uint8_t decode_funct3(const uint32_t *instruction) {
+  uint8_t funct = (*instruction >> 12) & 0x7;
+  return funct;
 }
 
-uint8_t decode_funct7(const uint32_t* instruction) {
-	uint8_t funct = (*instruction >> 25) & 0x7f;
-	return funct;
+uint8_t decode_funct7(const uint32_t *instruction) {
+  uint8_t funct = (*instruction >> 25) & 0x7f;
+  return funct;
 }
 /**
  * R Instructions
  */
-RInstruction decode_r_instruction(const uint32_t* instruction) {
-	RInstruction r_instr = {
-		.rs1 = decode_register(instruction, RS1),
-		.rs2 = decode_register(instruction, RS2),
-		.rd = decode_register(instruction, RD),
-		.funct3 = decode_funct3(instruction),
-		.funct7 = decode_funct7(instruction)
-	};
-	return r_instr;
+RInstruction decode_r_instruction(const uint32_t *instruction) {
+  RInstruction r_instr = {.rs1 = decode_register(instruction, RS1),
+                          .rs2 = decode_register(instruction, RS2),
+                          .rd = decode_register(instruction, RD),
+                          .funct3 = decode_funct3(instruction),
+                          .funct7 = decode_funct7(instruction)};
+  return r_instr;
 }
 
-void add(CPU* cpu, const RInstruction* r_instruction) {
-	cpu->regfile_[r_instruction->rd] = cpu->regfile_[r_instruction->rs1]
-		+ cpu->regfile_[r_instruction->rs2];
-	cpu->pc_ += 4;
+void add(CPU *cpu, const RInstruction *r_instruction) {
+  cpu->regfile_[r_instruction->rd] =
+      cpu->regfile_[r_instruction->rs1] + cpu->regfile_[r_instruction->rs2];
+  cpu->pc_ += 4;
 }
 
-void sub(CPU* cpu, const RInstruction* r_instruction) {
-	cpu->regfile_[r_instruction->rd] = cpu->regfile_[r_instruction->rs1]
-		- cpu->regfile_[r_instruction->rs2];
-	cpu->pc_ += 4;
+void sub(CPU *cpu, const RInstruction *r_instruction) {
+  cpu->regfile_[r_instruction->rd] =
+      cpu->regfile_[r_instruction->rs1] - cpu->regfile_[r_instruction->rs2];
+  cpu->pc_ += 4;
 }
 
-void and(CPU* cpu, const RInstruction* r_instruction) {
-	cpu->regfile_[r_instruction->rd] = cpu->regfile_[r_instruction->rs1]
-		& cpu->regfile_[r_instruction->rs2];
-	cpu->pc_ += 4;
+void and (CPU * cpu, const RInstruction *r_instruction) {
+  cpu->regfile_[r_instruction->rd] =
+      cpu->regfile_[r_instruction->rs1] & cpu->regfile_[r_instruction->rs2];
+  cpu->pc_ += 4;
 }
 
-void or(CPU* cpu, const RInstruction* r_instruction) {
-	cpu->regfile_[r_instruction->rd] = cpu->regfile_[r_instruction->rs1]
-		| cpu->regfile_[r_instruction->rs2];
-	cpu->pc_ += 4;
+void or (CPU * cpu, const RInstruction *r_instruction) {
+  cpu->regfile_[r_instruction->rd] =
+      cpu->regfile_[r_instruction->rs1] | cpu->regfile_[r_instruction->rs2];
+  cpu->pc_ += 4;
 }
 
-void xor(CPU* cpu, const RInstruction* r_instruction) {
-	cpu->regfile_[r_instruction->rd] = cpu->regfile_[r_instruction->rs1]
-		^ cpu->regfile_[r_instruction->rs2];
-	cpu->pc_ += 4;
+void xor
+    (CPU * cpu, const RInstruction *r_instruction) {
+      cpu->regfile_[r_instruction->rd] =
+          cpu->regfile_[r_instruction->rs1] ^ cpu->regfile_[r_instruction->rs2];
+      cpu->pc_ += 4;
+    }
+
+    void srl(CPU *cpu, const RInstruction *r_instruction) {
+  cpu->regfile_[r_instruction->rd] =
+      cpu->regfile_[r_instruction->rs1] >> cpu->regfile_[r_instruction->rs2];
+  cpu->pc_ += 4;
 }
 
-void srl(CPU* cpu, const RInstruction* r_instruction) {
-	cpu->regfile_[r_instruction->rd] = cpu->regfile_[r_instruction->rs1]
-		>> cpu->regfile_[r_instruction->rs2];
-	cpu->pc_ += 4;
+void sra(CPU *cpu, const RInstruction *r_instruction) {
+  cpu->regfile_[r_instruction->rd] =
+      (int32_t)cpu->regfile_[r_instruction->rs1] >>
+      cpu->regfile_[r_instruction->rs2];
+  cpu->pc_ += 4;
 }
 
-void sra(CPU* cpu, const RInstruction* r_instruction) {
-	cpu->regfile_[r_instruction->rd] = (int32_t) cpu->regfile_[r_instruction->rs1]
-		>> cpu->regfile_[r_instruction->rs2];
-	cpu->pc_ += 4;
+void sll(CPU *cpu, const RInstruction *r_instruction) {
+  cpu->regfile_[r_instruction->rd] = cpu->regfile_[r_instruction->rs1]
+                                     << cpu->regfile_[r_instruction->rs2];
+  cpu->pc_ += 4;
 }
 
-void sll(CPU* cpu, const RInstruction* r_instruction) {
-	cpu->regfile_[r_instruction->rd] = cpu->regfile_[r_instruction->rs1]
-		<< cpu->regfile_[r_instruction->rs2];
-	cpu->pc_ += 4;
+void slt(CPU *cpu, const RInstruction *r_instruction) {
+  cpu->regfile_[r_instruction->rd] =
+      (int32_t)cpu->regfile_[r_instruction->rs1] <
+      (int32_t)cpu->regfile_[r_instruction->rs2];
+  cpu->pc_ += 4;
 }
 
-void slt(CPU* cpu, const RInstruction* r_instruction) {
-	cpu->regfile_[r_instruction->rd] = (int32_t) cpu->regfile_[r_instruction->rs1]
-		< (int32_t) cpu->regfile_[r_instruction->rs2];
-	cpu->pc_ += 4;
-}
-
-void sltu(CPU* cpu, const RInstruction* r_instruction) {
-	cpu->regfile_[r_instruction->rd] = cpu->regfile_[r_instruction->rs1]
-		< cpu->regfile_[r_instruction->rs2];
-	cpu->pc_ += 4;
+void sltu(CPU *cpu, const RInstruction *r_instruction) {
+  cpu->regfile_[r_instruction->rd] =
+      cpu->regfile_[r_instruction->rs1] < cpu->regfile_[r_instruction->rs2];
+  cpu->pc_ += 4;
 }
 
 enum funct3_r {
-ADD_SUB = 0x0,
-SLL = 0x1,
-SLT = 0x2,
-SLTU = 0x3,
-XOR = 0x4,
-SRL_SRA = 0x5,
-OR = 0x6,
-AND = 0x7
+  ADD_SUB = 0x0,
+  SLL = 0x1,
+  SLT = 0x2,
+  SLTU = 0x3,
+  XOR = 0x4,
+  SRL_SRA = 0x5,
+  OR = 0x6,
+  AND = 0x7
 };
 
-void execute_r_instruction(CPU* cpu, RInstruction* r_instruction) {
-	switch (r_instruction->funct3) {
-		case ADD_SUB:
-			if (r_instruction->funct7 == 0) {
-				add(cpu, r_instruction);
-			} else {
-				sub(cpu, r_instruction);
-			}
-			break;
-		case AND:
-			and(cpu, r_instruction);
-			break;
-		case OR:
-			or(cpu, r_instruction);
-			break;
-		case XOR:
-			xor(cpu, r_instruction);
-			break;
-		case SRL_SRA:
-			if (r_instruction->funct7 == 0) {
-				srl(cpu, r_instruction);
-			} else {
-				sra(cpu, r_instruction);
-			}
-			break;
-		case SLL:
-			sll(cpu, r_instruction);
-			break;
-		case SLT:
-			slt(cpu, r_instruction);
-			break;
-		case SLTU:
-			sltu(cpu, r_instruction);
-			break;
-	}
+void execute_r_instruction(CPU *cpu, RInstruction *r_instruction) {
+  switch (r_instruction->funct3) {
+  case ADD_SUB:
+    if (r_instruction->funct7 == 0) {
+      add(cpu, r_instruction);
+    } else {
+      sub(cpu, r_instruction);
+    }
+    break;
+  case AND:
+    and(cpu, r_instruction);
+    break;
+  case OR:
+    or (cpu, r_instruction);
+    break;
+  case XOR:
+    xor(cpu, r_instruction);
+    break;
+  case SRL_SRA:
+    if (r_instruction->funct7 == 0) {
+      srl(cpu, r_instruction);
+    } else {
+      sra(cpu, r_instruction);
+    }
+    break;
+  case SLL:
+    sll(cpu, r_instruction);
+    break;
+  case SLT:
+    slt(cpu, r_instruction);
+    break;
+  case SLTU:
+    sltu(cpu, r_instruction);
+    break;
+  }
 }
 
 /**
  * I Instructions
  */
-uint32_t decode_i_imm(const uint32_t* instruction) {
-	uint32_t imm = 0;
-	uint8_t extend = (*instruction >> 31) & 1;
-	uint16_t imm11_0 = (*instruction >> 20) & 0xFFF;
-	imm = (extend * 0xFFFFF000) + imm11_0;
+uint32_t decode_i_imm(const uint32_t *instruction) {
+  uint32_t imm = 0;
+  uint8_t extend = (*instruction >> 31) & 1;
+  uint16_t imm11_0 = (*instruction >> 20) & 0xFFF;
+  imm = (extend * 0xFFFFF000) + imm11_0;
 
-	return imm;
+  return imm;
 }
 
-IInstruction decode_i_instruction(const uint32_t* instruction) {
-	IInstruction i_instr = {
-		.rs1 = decode_register(instruction, RS1),
-		.rd = decode_register(instruction, RD),
-		.funct3 = decode_funct3(instruction),
-		.imm = decode_i_imm(instruction)
-	};
-	return i_instr;
+IInstruction decode_i_instruction(const uint32_t *instruction) {
+  IInstruction i_instr = {.rs1 = decode_register(instruction, RS1),
+                          .rd = decode_register(instruction, RD),
+                          .funct3 = decode_funct3(instruction),
+                          .imm = decode_i_imm(instruction)};
+  return i_instr;
 }
 
-void lb(CPU* cpu, const IInstruction* i_instruction) {
-	cpu->regfile_[i_instruction->rd] =
-		cpu->data_mem_[cpu->regfile_[i_instruction->rs1] + (int32_t) i_instruction->imm];
-	cpu->pc_ += 4;
+void lb(CPU *cpu, const IInstruction *i_instruction) {
+  cpu->regfile_[i_instruction->rd] =
+      cpu->data_mem_[cpu->regfile_[i_instruction->rs1] +
+                     (int32_t)i_instruction->imm];
+  cpu->pc_ += 4;
 }
 
-void lh(CPU* cpu, const IInstruction* i_instruction) {
-	cpu->regfile_[i_instruction->rd] =
-		*(uint16_t*) (cpu->data_mem_ + cpu->regfile_[i_instruction->rs1] + (int32_t) i_instruction->imm);
-	cpu->pc_ += 4;
+void lh(CPU *cpu, const IInstruction *i_instruction) {
+  cpu->regfile_[i_instruction->rd] =
+      *(uint16_t *)(cpu->data_mem_ + cpu->regfile_[i_instruction->rs1] +
+                    (int32_t)i_instruction->imm);
+  cpu->pc_ += 4;
 }
 
-void lw(CPU* cpu, const IInstruction* i_instruction) {
-	cpu->regfile_[i_instruction->rd] =
-		*(uint32_t*) (cpu->data_mem_ + cpu->regfile_[i_instruction->rs1] + (int32_t) i_instruction->imm);
+void lw(CPU *cpu, const IInstruction *i_instruction) {
+  cpu->regfile_[i_instruction->rd] =
+      *(uint32_t *)(cpu->data_mem_ + cpu->regfile_[i_instruction->rs1] +
+                    (int32_t)i_instruction->imm);
 }
 
-void lbu(CPU* cpu, const IInstruction* i_instruction) {
-	cpu->regfile_[i_instruction->rd] =
-		cpu->data_mem_[cpu->regfile_[i_instruction->rs1] + i_instruction->imm];
+void lbu(CPU *cpu, const IInstruction *i_instruction) {
+  cpu->regfile_[i_instruction->rd] =
+      cpu->data_mem_[cpu->regfile_[i_instruction->rs1] + i_instruction->imm];
 }
 
-void lhu(CPU* cpu, const IInstruction* i_instruction) {
-	cpu->regfile_[i_instruction->rd] =
-		*(uint16_t*) (cpu->data_mem_ + cpu->regfile_[i_instruction->rs1] + i_instruction->imm);
+void lhu(CPU *cpu, const IInstruction *i_instruction) {
+  cpu->regfile_[i_instruction->rd] =
+      *(uint16_t *)(cpu->data_mem_ + cpu->regfile_[i_instruction->rs1] +
+                    i_instruction->imm);
 }
 
-void addi(CPU* cpu, const IInstruction* i_instruction) {
-	cpu->regfile_[i_instruction->rd] =
-		cpu->regfile_[i_instruction->rs1] + i_instruction->imm;
-	cpu->pc_ += 4;
+void addi(CPU *cpu, const IInstruction *i_instruction) {
+  cpu->regfile_[i_instruction->rd] =
+      cpu->regfile_[i_instruction->rs1] + i_instruction->imm;
+  cpu->pc_ += 4;
 }
 
-void slti(CPU* cpu, const IInstruction* i_instruction) {
-	cpu->regfile_[i_instruction->rd] = cpu->regfile_[i_instruction->rs1] < (int32_t) i_instruction->imm;
-	cpu->pc_ += 4;
+void slti(CPU *cpu, const IInstruction *i_instruction) {
+  cpu->regfile_[i_instruction->rd] =
+      cpu->regfile_[i_instruction->rs1] < (int32_t)i_instruction->imm;
+  cpu->pc_ += 4;
 }
 
-void sltiu(CPU* cpu, const IInstruction* i_instruction) {
-	cpu->regfile_[i_instruction->rd] = cpu->regfile_[i_instruction->rs1] < i_instruction->imm;
-	cpu->pc_ += 4;
+void sltiu(CPU *cpu, const IInstruction *i_instruction) {
+  cpu->regfile_[i_instruction->rd] =
+      cpu->regfile_[i_instruction->rs1] < i_instruction->imm;
+  cpu->pc_ += 4;
 }
 
-void xori(CPU* cpu, const IInstruction* i_instruction) {
-	cpu->regfile_[i_instruction->rd] =
-		cpu->regfile_[i_instruction->rs1] ^ i_instruction->imm;
-	cpu->pc_ += 4;
+void xori(CPU *cpu, const IInstruction *i_instruction) {
+  cpu->regfile_[i_instruction->rd] =
+      cpu->regfile_[i_instruction->rs1] ^ i_instruction->imm;
+  cpu->pc_ += 4;
 }
 
-void ori(CPU* cpu, const IInstruction* i_instruction) {
-	cpu->regfile_[i_instruction->rd] =
-		cpu->regfile_[i_instruction->rs1] | i_instruction->imm;
-	cpu->pc_ += 4;
+void ori(CPU *cpu, const IInstruction *i_instruction) {
+  cpu->regfile_[i_instruction->rd] =
+      cpu->regfile_[i_instruction->rs1] | i_instruction->imm;
+  cpu->pc_ += 4;
 }
 
-void andi(CPU* cpu, const IInstruction* i_instruction) {
-	cpu->regfile_[i_instruction->rd] =
-		cpu->regfile_[i_instruction->rs1] & i_instruction->imm;
-	cpu->pc_ += 4;
+void andi(CPU *cpu, const IInstruction *i_instruction) {
+  cpu->regfile_[i_instruction->rd] =
+      cpu->regfile_[i_instruction->rs1] & i_instruction->imm;
+  cpu->pc_ += 4;
 }
 
-void jalr(CPU* cpu, const IInstruction* i_instruction) {
-	cpu->regfile_[i_instruction->rd] = cpu->pc_ + 4;
-	cpu->pc_ = (cpu->regfile_[i_instruction->rs1]) + ((int32_t) i_instruction->imm);
+void jalr(CPU *cpu, const IInstruction *i_instruction) {
+  cpu->regfile_[i_instruction->rd] = cpu->pc_ + 4;
+  cpu->pc_ =
+      (cpu->regfile_[i_instruction->rs1]) + ((int32_t)i_instruction->imm);
 }
 /**
  * Instructions that take R-like instructions */
-void slli(CPU* cpu, const RInstruction* r_instruction) {
-	cpu->regfile_[r_instruction->rd] =
-		cpu->regfile_[r_instruction->rs1] << r_instruction->rs2;
-	cpu->pc_ += 4;
+void slli(CPU *cpu, const RInstruction *r_instruction) {
+  cpu->regfile_[r_instruction->rd] = cpu->regfile_[r_instruction->rs1]
+                                     << r_instruction->rs2;
+  cpu->pc_ += 4;
 }
 
-void srli(CPU* cpu, const RInstruction* r_instruction) {
-	cpu->regfile_[r_instruction->rd] =
-		cpu->regfile_[r_instruction->rs1] >> r_instruction->rs2;
-	cpu->pc_ += 4;
+void srli(CPU *cpu, const RInstruction *r_instruction) {
+  cpu->regfile_[r_instruction->rd] =
+      cpu->regfile_[r_instruction->rs1] >> r_instruction->rs2;
+  cpu->pc_ += 4;
 }
 
-void srai(CPU* cpu, const RInstruction* r_instruction) {
-	cpu->regfile_[r_instruction->rd] =
-		cpu->regfile_[r_instruction->rs1] >> (int8_t) r_instruction->rs2;
-	cpu->pc_ += 4;
+void srai(CPU *cpu, const RInstruction *r_instruction) {
+  cpu->regfile_[r_instruction->rd] =
+      cpu->regfile_[r_instruction->rs1] >> (int8_t)r_instruction->rs2;
+  cpu->pc_ += 4;
 }
 
 enum funct3_i {
-ADDI = 0x0,
-SLTI = 0x2,
-SLTIU = 0x3,
-XORI = 0x4,
-ORI = 0x5,
-ANDI = 0x7,
+  ADDI = 0x0,
+  SLTI = 0x2,
+  SLTIU = 0x3,
+  XORI = 0x4,
+  ORI = 0x5,
+  ANDI = 0x7,
 };
-void execute_i_instruction(CPU* cpu, const IInstruction* i_instruction) {
-	switch (i_instruction->funct3) {
-		case ADDI:
-			addi(cpu, i_instruction);
-			break;
-		case SLTI:
-			slti(cpu, i_instruction);
-			break;
-		case SLTIU:
-			sltiu(cpu, i_instruction);
-			break;
-		case XORI:
-			xori(cpu, i_instruction);
-			break;
-		case ORI:
-			ori(cpu, i_instruction);
-			break;
-		case ANDI:
-			andi(cpu, i_instruction);
-			break;
-	}
+void execute_i_instruction(CPU *cpu, const IInstruction *i_instruction) {
+  switch (i_instruction->funct3) {
+  case ADDI:
+    addi(cpu, i_instruction);
+    break;
+  case SLTI:
+    slti(cpu, i_instruction);
+    break;
+  case SLTIU:
+    sltiu(cpu, i_instruction);
+    break;
+  case XORI:
+    xori(cpu, i_instruction);
+    break;
+  case ORI:
+    ori(cpu, i_instruction);
+    break;
+  case ANDI:
+    andi(cpu, i_instruction);
+    break;
+  }
 }
 
 enum funct3_load {
-LB = 0x0,
-LH = 0x1,
-LW = 0x2,
-LBU = 0x4,
-LHU = 0x5,
+  LB = 0x0,
+  LH = 0x1,
+  LW = 0x2,
+  LBU = 0x4,
+  LHU = 0x5,
 };
-void execute_load_instruction(CPU* cpu, const IInstruction* i_instruction) {
-	switch (i_instruction->funct3) {
-		case LB:
-			lb(cpu, i_instruction);
-			break;
-		case LH:
-			lh(cpu, i_instruction);
-			break;
-		case LW:
-			lw(cpu, i_instruction);
-			break;
-		case LBU:
-			lbu(cpu, i_instruction);
-			break;
-		case LHU:
-			lhu(cpu, i_instruction);
-			break;
-	}
+void execute_load_instruction(CPU *cpu, const IInstruction *i_instruction) {
+  switch (i_instruction->funct3) {
+  case LB:
+    lb(cpu, i_instruction);
+    break;
+  case LH:
+    lh(cpu, i_instruction);
+    break;
+  case LW:
+    lw(cpu, i_instruction);
+    break;
+  case LBU:
+    lbu(cpu, i_instruction);
+    break;
+  case LHU:
+    lhu(cpu, i_instruction);
+    break;
+  }
 }
 /**
  * S Instructions
  */
-uint32_t decode_s_imm(const uint32_t* instruction) {
-	uint32_t imm = 0;
-	uint8_t extend = (*instruction >> 31) & 1;
-	uint16_t imm11_5 = (*instruction >> 25) & 0x7F;
-	uint8_t imm4_0 = (*instruction >> 7) & 0x1F;
-	imm = (0xFFFFF000 * extend) + (imm11_5 << 5) + imm4_0;
-	return imm;
+uint32_t decode_s_imm(const uint32_t *instruction) {
+  uint32_t imm = 0;
+  uint8_t extend = (*instruction >> 31) & 1;
+  uint16_t imm11_5 = (*instruction >> 25) & 0x7F;
+  uint8_t imm4_0 = (*instruction >> 7) & 0x1F;
+  imm = (0xFFFFF000 * extend) + (imm11_5 << 5) + imm4_0;
+  return imm;
 }
 
-SInstruction decode_s_instruction(const uint32_t* instruction) {
-	SInstruction s_instr = {
-		.rs1 = decode_register(instruction, RS1),
-		.rs2 = decode_register(instruction, RS2),
-		.funct3 = decode_funct3(instruction),
-		.imm = decode_s_imm(instruction)
-	};
-	return s_instr;
+SInstruction decode_s_instruction(const uint32_t *instruction) {
+  SInstruction s_instr = {.rs1 = decode_register(instruction, RS1),
+                          .rs2 = decode_register(instruction, RS2),
+                          .funct3 = decode_funct3(instruction),
+                          .imm = decode_s_imm(instruction)};
+  return s_instr;
 }
-//TODO check for data_mem_ bounds and mmio (output auf stdout)
-void sb(CPU* cpu, const SInstruction* s_instruction) {
-	cpu->data_mem_[cpu->regfile_[s_instruction->rs1] + (int32_t) s_instruction->imm]
-		= (uint8_t) cpu->regfile_[s_instruction->rs2];
-}
-
-//TODO check for data_mem_ bounds and mmio (output auf stdout)
-void sh(CPU* cpu, const SInstruction* s_instruction) {
-	*(uint16_t*) (cpu->data_mem_ + cpu->regfile_[s_instruction->rs1] + s_instruction->imm)
-		= (uint16_t) cpu->regfile_[s_instruction->rs2];
-	cpu->pc_ += 4;
+// TODO check for data_mem_ bounds and mmio (output auf stdout)
+void sb(CPU *cpu, const SInstruction *s_instruction) {
+  cpu->data_mem_[cpu->regfile_[s_instruction->rs1] +
+                 (int32_t)s_instruction->imm] =
+      (uint8_t)cpu->regfile_[s_instruction->rs2];
 }
 
-//TODO check for data_mem_ bounds and mmio (output auf stdout)
-void sw(CPU* cpu, const SInstruction* s_instruction) {
-	*(uint32_t*) (cpu->data_mem_ + cpu->regfile_[s_instruction->rs1] + s_instruction->imm)
-		= (uint32_t) cpu->regfile_[s_instruction->rs2];
-	cpu->pc_ += 4;
+// TODO check for data_mem_ bounds and mmio (output auf stdout)
+void sh(CPU *cpu, const SInstruction *s_instruction) {
+  *(uint16_t *)(cpu->data_mem_ + cpu->regfile_[s_instruction->rs1] +
+                s_instruction->imm) =
+      (uint16_t)cpu->regfile_[s_instruction->rs2];
+  cpu->pc_ += 4;
 }
 
-enum funct3_s {
-SB = 0x0,
-SH = 0x1,
-SW = 0x2
-};
+// TODO check for data_mem_ bounds and mmio (output auf stdout)
+void sw(CPU *cpu, const SInstruction *s_instruction) {
+  *(uint32_t *)(cpu->data_mem_ + cpu->regfile_[s_instruction->rs1] +
+                s_instruction->imm) =
+      (uint32_t)cpu->regfile_[s_instruction->rs2];
+  cpu->pc_ += 4;
+}
 
-void execute_s_instruction(CPU* cpu, const SInstruction* s_instruction) {
-	switch (s_instruction->funct3) {
-		case SB:
-			sb(cpu, s_instruction);
-			break;
-		case SH:
-			sh(cpu, s_instruction);
-			break;
-		case SW:
-			sw(cpu, s_instruction);
-			break;
-	}
+enum funct3_s { SB = 0x0, SH = 0x1, SW = 0x2 };
+
+void execute_s_instruction(CPU *cpu, const SInstruction *s_instruction) {
+  switch (s_instruction->funct3) {
+  case SB:
+    sb(cpu, s_instruction);
+    break;
+  case SH:
+    sh(cpu, s_instruction);
+    break;
+  case SW:
+    sw(cpu, s_instruction);
+    break;
+  }
 }
 
 /**
  * B Instructions
  */
-uint32_t decode_b_imm(const uint32_t* instruction) {
-	uint32_t imm = 0;
-	uint8_t extend = (*instruction >> 31) & 1;
-	uint8_t imm12 = extend;
-	uint8_t imm11 = (*instruction >> 7) & 1;
-	uint8_t imm10_5 = (*instruction >> 25) & 0x3F;
-	uint8_t imm4_1 = (*instruction >> 8) & 0xF;
+uint32_t decode_b_imm(const uint32_t *instruction) {
+  uint32_t imm = 0;
+  uint8_t extend = (*instruction >> 31) & 1;
+  uint8_t imm12 = extend;
+  uint8_t imm11 = (*instruction >> 7) & 1;
+  uint8_t imm10_5 = (*instruction >> 25) & 0x3F;
+  uint8_t imm4_1 = (*instruction >> 8) & 0xF;
 
-	imm = (extend * 0xFFFFE000)
-		+ (imm12 << 12)
-		+ (imm11 << 11)
-		+ (imm10_5 << 5)
-		+ (imm4_1 << 1);
-	return imm;
+  imm = (extend * 0xFFFFE000) + (imm12 << 12) + (imm11 << 11) + (imm10_5 << 5) +
+        (imm4_1 << 1);
+  return imm;
 }
 
-BInstruction decode_b_instruction(const uint32_t* instruction) {
-	BInstruction b_instr = {
-		.rs1 = decode_register(instruction, RS1),
-		.rs2 = decode_register(instruction, RS2),
-		.funct3 = decode_funct3(instruction),
-		.imm = decode_b_imm(instruction)
-	};
-	return b_instr;
+BInstruction decode_b_instruction(const uint32_t *instruction) {
+  BInstruction b_instr = {.rs1 = decode_register(instruction, RS1),
+                          .rs2 = decode_register(instruction, RS2),
+                          .funct3 = decode_funct3(instruction),
+                          .imm = decode_b_imm(instruction)};
+  return b_instr;
 }
 
-void beq(CPU* cpu, const BInstruction* b_instruction) {
-	if (cpu->regfile_[b_instruction->rs1] == cpu->regfile_[b_instruction->rs2]) {
-		cpu->pc_ = cpu->pc_ + (int32_t) b_instruction->imm;
-	} else {
-		cpu->pc_ += 4;
-	}
+void beq(CPU *cpu, const BInstruction *b_instruction) {
+  if (cpu->regfile_[b_instruction->rs1] == cpu->regfile_[b_instruction->rs2]) {
+    cpu->pc_ = cpu->pc_ + (int32_t)b_instruction->imm;
+  } else {
+    cpu->pc_ += 4;
+  }
 }
-void bne(CPU* cpu, const BInstruction* b_instruction) {
-	if (cpu->regfile_[b_instruction->rs1] != cpu->regfile_[b_instruction->rs2]) {
-		cpu->pc_ = cpu->pc_ + (int32_t) b_instruction->imm;
-	} else {
-		cpu->pc_ += 4;
-	}
+void bne(CPU *cpu, const BInstruction *b_instruction) {
+  if (cpu->regfile_[b_instruction->rs1] != cpu->regfile_[b_instruction->rs2]) {
+    cpu->pc_ = cpu->pc_ + (int32_t)b_instruction->imm;
+  } else {
+    cpu->pc_ += 4;
+  }
 }
 
 /**
  * Signed Comps
  */
-void blt(CPU* cpu, const BInstruction* b_instruction) {
-	if ((int32_t) cpu->regfile_[b_instruction->rs1] < (int32_t) cpu->regfile_[b_instruction->rs2]) {
-		cpu->pc_ = cpu->pc_ + (int32_t) b_instruction->imm;
-	} else {
-		cpu->pc_ += 4;
-	}
+void blt(CPU *cpu, const BInstruction *b_instruction) {
+  if ((int32_t)cpu->regfile_[b_instruction->rs1] <
+      (int32_t)cpu->regfile_[b_instruction->rs2]) {
+    cpu->pc_ = cpu->pc_ + (int32_t)b_instruction->imm;
+  } else {
+    cpu->pc_ += 4;
+  }
 }
 
-void bge(CPU* cpu, const BInstruction* b_instruction) {
-	if ((int32_t) cpu->regfile_[b_instruction->rs1] >= (int32_t) cpu->regfile_[b_instruction->rs2]) {
-		cpu->pc_ = cpu->pc_ + (int32_t) b_instruction->imm;
-	} else {
-		cpu->pc_ += 4;
-	}
+void bge(CPU *cpu, const BInstruction *b_instruction) {
+  if ((int32_t)cpu->regfile_[b_instruction->rs1] >=
+      (int32_t)cpu->regfile_[b_instruction->rs2]) {
+    cpu->pc_ = cpu->pc_ + (int32_t)b_instruction->imm;
+  } else {
+    cpu->pc_ += 4;
+  }
 }
 
 /**
  * unsigned Comps
  */
-void bltu(CPU* cpu, const BInstruction* b_instruction) {
-	if (cpu->regfile_[b_instruction->rs1] < cpu->regfile_[b_instruction->rs2]) {
-		cpu->pc_ = cpu->pc_ + (int32_t) b_instruction->imm;
-	} else {
-		cpu->pc_ += 4;
-	}
+void bltu(CPU *cpu, const BInstruction *b_instruction) {
+  if (cpu->regfile_[b_instruction->rs1] < cpu->regfile_[b_instruction->rs2]) {
+    cpu->pc_ = cpu->pc_ + (int32_t)b_instruction->imm;
+  } else {
+    cpu->pc_ += 4;
+  }
 }
 
-void bgeu(CPU* cpu, const BInstruction* b_instruction) {
-	if (cpu->regfile_[b_instruction->rs1] >= cpu->regfile_[b_instruction->rs2]) {
-		cpu->pc_ = cpu->pc_ + (int32_t) b_instruction->imm;
-	} else {
-		cpu->pc_ += 4;
-	}
+void bgeu(CPU *cpu, const BInstruction *b_instruction) {
+  if (cpu->regfile_[b_instruction->rs1] >= cpu->regfile_[b_instruction->rs2]) {
+    cpu->pc_ = cpu->pc_ + (int32_t)b_instruction->imm;
+  } else {
+    cpu->pc_ += 4;
+  }
 }
-
 
 enum funct3_b {
-BEQ = 0x0,
-BNE = 0x1,
-BLT = 0x4,
-BGE = 0x5,
-BLTU = 0x6,
-BGEU = 0x7,
+  BEQ = 0x0,
+  BNE = 0x1,
+  BLT = 0x4,
+  BGE = 0x5,
+  BLTU = 0x6,
+  BGEU = 0x7,
 };
 
-void execute_b_instruction(CPU* cpu, const BInstruction* b_instr) {
-	switch (b_instr->funct3) {
-			case BEQ:
-				beq(cpu, b_instr);
-				break;
-			case BNE:
-				bne(cpu, b_instr);
-				break;
-			case BLT:
-				blt(cpu, b_instr);
-				break;
-			case BGE:
-				bge(cpu, b_instr);
-				break;
-			case BLTU:
-				bltu(cpu, b_instr);
-				break;
-			case BGEU:
-				bgeu(cpu, b_instr);
-				break;
-	}
+void execute_b_instruction(CPU *cpu, const BInstruction *b_instr) {
+  switch (b_instr->funct3) {
+  case BEQ:
+    beq(cpu, b_instr);
+    break;
+  case BNE:
+    bne(cpu, b_instr);
+    break;
+  case BLT:
+    blt(cpu, b_instr);
+    break;
+  case BGE:
+    bge(cpu, b_instr);
+    break;
+  case BLTU:
+    bltu(cpu, b_instr);
+    break;
+  case BGEU:
+    bgeu(cpu, b_instr);
+    break;
+  }
 }
 /**
  * U Instructions
  */
-uint32_t decode_u_imm(const uint32_t* instruction) {
-	uint32_t imm = 0;
-	uint32_t imm32_12 = (*instruction >> 12) & 0xFFFFF;
-	imm = imm32_12 << 12;
-	return imm;
+uint32_t decode_u_imm(const uint32_t *instruction) {
+  uint32_t imm = 0;
+  uint32_t imm32_12 = (*instruction >> 12) & 0xFFFFF;
+  imm = imm32_12 << 12;
+  return imm;
 }
 
-UInstruction decode_u_instruction(const uint32_t* instruction) {
-	UInstruction u_instr = {
-		.rd = decode_register(instruction, RD),
-		.imm = decode_u_imm(instruction)
-	};
-	return u_instr;
+UInstruction decode_u_instruction(const uint32_t *instruction) {
+  UInstruction u_instr = {.rd = decode_register(instruction, RD),
+                          .imm = decode_u_imm(instruction)};
+  return u_instr;
 }
 
-void lui(CPU* cpu, const UInstruction* u_instruction) {
-	cpu->regfile_[u_instruction->rd] = u_instruction->imm;
-	cpu->pc_ += 4;
+void lui(CPU *cpu, const UInstruction *u_instruction) {
+  cpu->regfile_[u_instruction->rd] = u_instruction->imm;
+  cpu->pc_ += 4;
 }
 
-void auipc(CPU* cpu, const UInstruction* u_instruction) {
-	cpu->regfile_[u_instruction->rd] = cpu->pc_ + u_instruction->imm;
-	cpu->pc_ += 4;
+void auipc(CPU *cpu, const UInstruction *u_instruction) {
+  cpu->regfile_[u_instruction->rd] = cpu->pc_ + u_instruction->imm;
+  cpu->pc_ += 4;
 }
 
 /**
  * J Instructions
  */
-uint32_t decode_j_imm(const uint32_t* instruction) {
-	uint32_t imm = 0;
-	uint8_t extend = (*instruction >> 31) & 1;
-	uint8_t imm20 = extend;
-	uint16_t imm19_12 = (*instruction >> 12) & 0xFF;
-	uint8_t imm11 = (*instruction >> 20) & 1;
-	uint16_t imm10_1 = (*instruction >> 21) & 0x3FF;
+uint32_t decode_j_imm(const uint32_t *instruction) {
+  uint32_t imm = 0;
+  uint8_t extend = (*instruction >> 31) & 1;
+  uint8_t imm20 = extend;
+  uint16_t imm19_12 = (*instruction >> 12) & 0xFF;
+  uint8_t imm11 = (*instruction >> 20) & 1;
+  uint16_t imm10_1 = (*instruction >> 21) & 0x3FF;
 
-	imm = (extend * 0xFFE00000)
-		+ (imm20 << 20)
-		+ (imm19_12 << 12)
-		+ (imm11 << 11)
-		+ (imm10_1 << 1);
-	return imm;
+  imm = (extend * 0xFFE00000) + (imm20 << 20) + (imm19_12 << 12) +
+        (imm11 << 11) + (imm10_1 << 1);
+  return imm;
 }
 
-JInstruction decode_j_instruction(const uint32_t* instruction) {
-	JInstruction j_instr = {
-		.rd = decode_register(instruction, RD),
-		.imm = decode_j_imm(instruction)
-	};
-	return j_instr;
+JInstruction decode_j_instruction(const uint32_t *instruction) {
+  JInstruction j_instr = {.rd = decode_register(instruction, RD),
+                          .imm = decode_j_imm(instruction)};
+  return j_instr;
 }
 
-void jal(CPU* cpu, const JInstruction* j_instruction) {
-	cpu->regfile_[j_instruction->rd] = cpu->pc_ + 4;
-	cpu->pc_ = cpu->pc_ + (int32_t) j_instruction->imm;
+void jal(CPU *cpu, const JInstruction *j_instruction) {
+  cpu->regfile_[j_instruction->rd] = cpu->pc_ + 4;
+  cpu->pc_ = cpu->pc_ + (int32_t)j_instruction->imm;
 }
 
 /**
  * Instruction fetch Instruction decode, Execute, Memory access, Write back
  */
-void CPU_execute(CPU* cpu) {
+void CPU_execute(CPU *cpu) {
 
-	uint32_t instruction = *(uint32_t*)(cpu->instr_mem_ + (cpu->pc_  & 0xFFFFF));
-	enum opcode_decode opcode = decode_opcode(&instruction);
-	// TODO
-	switch (opcode) {
-		case R: {
-			RInstruction r_instr = decode_r_instruction(&instruction);
-			execute_r_instruction(cpu, &r_instr);
-			break;
-		}
-		case I: {
-			uint8_t funct3 = decode_funct3(&instruction);
-			uint8_t funct7 = decode_funct7(&instruction);
-			//if SSLI
-			if (funct3 == 1) {
-				RInstruction r_instr = decode_r_instruction(&instruction);
-				slli(cpu, &r_instr);
-			}
-			//or srli/srai
-			else if (funct3 == 5) {
-				RInstruction r_instr = decode_r_instruction(&instruction);
-				if (funct7 == 0) {
-					srli(cpu, &r_instr);
-				} else {
-					srai(cpu, &r_instr);
-				}
-			}
-			//else execute normal I-Instruction
-			else {
-				IInstruction i_instr = decode_i_instruction(&instruction);
-				execute_i_instruction(cpu, &i_instr);
-			}
-			break;
-		}
-		case S: {
-			SInstruction s_instr = decode_s_instruction(&instruction);
-			execute_s_instruction(cpu, &s_instr);
-			break;
-		}
-		case L: {
-			IInstruction i_instr = decode_i_instruction(&instruction);
-			execute_load_instruction(cpu, &i_instr);
-			break;
-		}
-		case B: {
-			BInstruction b_instr = decode_b_instruction(&instruction);
-			execute_b_instruction(cpu, &b_instr);
-			break;
-		}
-		case JALR: {
-			IInstruction i_instr = decode_i_instruction(&instruction);
-			jalr(cpu, &i_instr);
-			break;
-		}
-		case JAL: {
-			JInstruction j_instr = decode_j_instruction(&instruction);
-			jal(cpu, &j_instr);
-			break;
-		}
-		case AUIPC: {
-			UInstruction u_instr = decode_u_instruction(&instruction);
-			auipc(cpu, &u_instr);
-			break;
-		}
-		case LUI: {
-			UInstruction u_instr = decode_u_instruction(&instruction);
-			lui(cpu, &u_instr);
-			break;
-		}
-	}
+  uint32_t instruction = *(uint32_t *)(cpu->instr_mem_ + (cpu->pc_ & 0xFFFFF));
+  enum opcode_decode opcode = decode_opcode(&instruction);
+  // TODO
+  switch (opcode) {
+  case R: {
+    RInstruction r_instr = decode_r_instruction(&instruction);
+    execute_r_instruction(cpu, &r_instr);
+    break;
+  }
+  case I: {
+    uint8_t funct3 = decode_funct3(&instruction);
+    uint8_t funct7 = decode_funct7(&instruction);
+    // if SSLI
+    if (funct3 == 1) {
+      RInstruction r_instr = decode_r_instruction(&instruction);
+      slli(cpu, &r_instr);
+    }
+    // or srli/srai
+    else if (funct3 == 5) {
+      RInstruction r_instr = decode_r_instruction(&instruction);
+      if (funct7 == 0) {
+        srli(cpu, &r_instr);
+      } else {
+        srai(cpu, &r_instr);
+      }
+    }
+    // else execute normal I-Instruction
+    else {
+      IInstruction i_instr = decode_i_instruction(&instruction);
+      execute_i_instruction(cpu, &i_instr);
+    }
+    break;
+  }
+  case S: {
+    SInstruction s_instr = decode_s_instruction(&instruction);
+    execute_s_instruction(cpu, &s_instr);
+    break;
+  }
+  case L: {
+    IInstruction i_instr = decode_i_instruction(&instruction);
+    execute_load_instruction(cpu, &i_instr);
+    break;
+  }
+  case B: {
+    BInstruction b_instr = decode_b_instruction(&instruction);
+    execute_b_instruction(cpu, &b_instr);
+    break;
+  }
+  case JALR: {
+    IInstruction i_instr = decode_i_instruction(&instruction);
+    jalr(cpu, &i_instr);
+    break;
+  }
+  case JAL: {
+    JInstruction j_instr = decode_j_instruction(&instruction);
+    jal(cpu, &j_instr);
+    break;
+  }
+  case AUIPC: {
+    UInstruction u_instr = decode_u_instruction(&instruction);
+    auipc(cpu, &u_instr);
+    break;
+  }
+  case LUI: {
+    UInstruction u_instr = decode_u_instruction(&instruction);
+    lui(cpu, &u_instr);
+    break;
+  }
+  }
+}
+/**
+ * Unit Tests
+ */
+#define SUCC_FAIL_RETURN                                                       \
+  printf("SUCCESS\n");                                                         \
+  return;                                                                      \
+  error:                                                                       \
+  printf("FAILURE\n");
+
+#define TESTEQ(arg1, arg2)                                                     \
+  if (arg1 != arg2) {                                                          \
+    goto error;                                                                \
+  }
+
+#define TESTNEQ(arg1, arg2)                                                    \
+  if (arg1 == arg2) {                                                          \
+    goto error;                                                                \
+  }
+
+void test_opcode_decode() {
+  uint8_t opcode = B;
+  uint32_t instruction = opcode;
+  printf("test_opcode_decode(): ");
+  TESTEQ(decode_opcode(&instruction), opcode);
+  SUCC_FAIL_RETURN;
 }
 
-int main() {
-	//uint32_t instruction = 0xFE0AFFB3;
-	//uint32_t instruction = 0xDED26D83;
-	//uint32_t instruction = 0xBE4DD723;
-	//uint32_t instruction = 0x7E20FFE3;
-	//uint32_t instruction = 0xFFFFF237;
-	uint32_t instruction = 0xff0f056F;
-	enum opcode_decode opcode;
+void test_decode_register() {
+  uint8_t rs1 = 0x2;
+  uint8_t rs2 = 0x5;
+  uint8_t rd = 0x7;
+  uint32_t instruction = (rs2 << 20) + (rs1 << 15) + (rd << 7);
 
-	opcode = decode_opcode(&instruction);
-	switch (opcode) {
-	case R:;
-		RInstruction r_instr = decode_r_instruction(&instruction);
-		printf("R:\n");
-		printf("%x\n", r_instr.rs1);
-		printf("%x\n", r_instr.rs2);
-		printf("%x\n", r_instr.rd);
-		printf("%x\n", r_instr.funct3);
-		printf("%x\n", r_instr.funct7);
-		break;
-	case L:;
-		IInstruction i_instr = decode_i_instruction(&instruction);
-		printf("I:\n");
-		printf("%x\n", i_instr.rs1);
-		printf("%x\n", i_instr.rd);
-		printf("%x\n", i_instr.funct3);
-		printf("%x\n", i_instr.imm);
-		break;
-	case S:;
-		SInstruction s_instr = decode_s_instruction(&instruction);
-		printf("S:\n");
-		printf("%x\n", s_instr.rs1);
-		printf("%x\n", s_instr.rs2);
-		printf("%x\n", s_instr.funct3);
-		printf("%x\n", s_instr.imm);
-		break;
-	case B:;
-		BInstruction b_instr = decode_b_instruction(&instruction);
-		printf("B:\n");
-		printf("%x\n", b_instr.rs1);
-		printf("%x\n", b_instr.rs2);
-		printf("%x\n", b_instr.funct3);
-		printf("%x\n", b_instr.imm);
-		break;
-	case LUI:;
-		UInstruction u_instr = decode_u_instruction(&instruction);
-		printf("LUI:\n");
-		printf("%x\n", u_instr.rd);
-		printf("%x\n", u_instr.imm);
-		break;
-	case JAL:;
-		JInstruction j_instr = decode_j_instruction(&instruction);
-		printf("JAL:\n");
-		printf("%x\n", j_instr.rd);
-		printf("%x\n", j_instr.imm);
-		break;
-	default:
-		break;
-		
-	}
-	printf("%#x", opcode);
+  printf("test_decode_register(): ");
+  TESTEQ(decode_register(&instruction, RS1), rs1);
+  TESTEQ(decode_register(&instruction, RS2), rs2);
+  TESTEQ(decode_register(&instruction, RD), rd);
+  SUCC_FAIL_RETURN;
+}
+
+void test_decode_funct3() {
+  uint8_t funct3 = 0x7;
+  uint32_t instruction = funct3 << 12;
+
+  printf("test_decode_funct3(): ");
+  TESTEQ(decode_funct3(&instruction), funct3);
+  SUCC_FAIL_RETURN;
+}
+
+void test_decode_funct7() {
+  uint8_t funct7 = 0x7F;
+  uint32_t instruction = funct7 << 25;
+
+  printf("test_decode_funct7(): ");
+  TESTEQ(decode_funct7(&instruction), funct7);
+  SUCC_FAIL_RETURN;
+}
+
+void test_decode_r_instruction() {
+  printf("test_decode_r_instruction(): ");
+  RInstruction ri = {
+      .rs1 = 0x1F, .rs2 = 0x1F, .rd = 0x1F, .funct3 = 0x7, .funct7 = 0x7F};
+  uint32_t instruction = (ri.rs1 << 15) + (ri.rs2 << 20) + (ri.rd << 7) +
+                         (ri.funct3 << 12) + (ri.funct7 << 25);
+  RInstruction ri_d = decode_r_instruction(&instruction);
+  TESTEQ(ri.rs1, ri_d.rs1);
+  TESTEQ(ri.rs2, ri_d.rs2);
+  TESTEQ(ri.rd, ri_d.rd);
+  TESTEQ(ri.funct3, ri_d.funct3);
+  TESTEQ(ri.funct7, ri_d.funct7);
+  SUCC_FAIL_RETURN;
+}
+
+void test_decode_i_instruction();
+void test_decode_s_instruction();
+void test_decode_b_instruction();
+void test_decode_u_instruction();
+void test_decode_j_instruction();
+
+void unit_tests() {
+  test_opcode_decode();
+  test_decode_register();
+  test_decode_funct3();
+  test_decode_funct7();
+
+  test_decode_r_instruction();
+}
+int main() {
+  unit_tests();
+  return 0;
+}
+
+int main_bak() {
+  // uint32_t instruction = 0xFE0AFFB3;
+  // uint32_t instruction = 0xDED26D83;
+  // uint32_t instruction = 0xBE4DD723;
+  // uint32_t instruction = 0x7E20FFE3;
+  // uint32_t instruction = 0xFFFFF237;
+  uint32_t instruction = 0xff0f056F;
+  enum opcode_decode opcode;
+
+  opcode = decode_opcode(&instruction);
+  switch (opcode) {
+  case R:;
+    RInstruction r_instr = decode_r_instruction(&instruction);
+    printf("R:\n");
+    printf("%x\n", r_instr.rs1);
+    printf("%x\n", r_instr.rs2);
+    printf("%x\n", r_instr.rd);
+    printf("%x\n", r_instr.funct3);
+    printf("%x\n", r_instr.funct7);
+    break;
+  case L:;
+    IInstruction i_instr = decode_i_instruction(&instruction);
+    printf("I:\n");
+    printf("%x\n", i_instr.rs1);
+    printf("%x\n", i_instr.rd);
+    printf("%x\n", i_instr.funct3);
+    printf("%x\n", i_instr.imm);
+    break;
+  case S:;
+    SInstruction s_instr = decode_s_instruction(&instruction);
+    printf("S:\n");
+    printf("%x\n", s_instr.rs1);
+    printf("%x\n", s_instr.rs2);
+    printf("%x\n", s_instr.funct3);
+    printf("%x\n", s_instr.imm);
+    break;
+  case B:;
+    BInstruction b_instr = decode_b_instruction(&instruction);
+    printf("B:\n");
+    printf("%x\n", b_instr.rs1);
+    printf("%x\n", b_instr.rs2);
+    printf("%x\n", b_instr.funct3);
+    printf("%x\n", b_instr.imm);
+    break;
+  case LUI:;
+    UInstruction u_instr = decode_u_instruction(&instruction);
+    printf("LUI:\n");
+    printf("%x\n", u_instr.rd);
+    printf("%x\n", u_instr.imm);
+    break;
+  case JAL:;
+    JInstruction j_instr = decode_j_instruction(&instruction);
+    printf("JAL:\n");
+    printf("%x\n", j_instr.rd);
+    printf("%x\n", j_instr.imm);
+    break;
+  default:
+    break;
+  }
+  printf("%#x", opcode);
 }
 /*int main(int argc, char* argv[]) {
-	printf("C Praktikum\nHU Risc-V  Emulator 2022\n");
-	CPU* cpu_inst;
+        printf("C Praktikum\nHU Risc-V  Emulator 2022\n");
+        CPU* cpu_inst;
 
-	cpu_inst = CPU_init(argv[1], argv[2]);
+        cpu_inst = CPU_init(argv[1], argv[2]);
     for(uint32_t i = 0; i <1000000; i++) { // run 70000 cycles
-    	CPU_execute(cpu_inst);
+        CPU_execute(cpu_inst);
     }
 
-	printf("\n-----------------------RISC-V program terminate------------------------\nRegfile values:\n");
+        printf("\n-----------------------RISC-V program
+   terminate------------------------\nRegfile values:\n");
 
-	//output Regfile
-	for(uint32_t i = 0; i <= 31; i++) {
-    	printf("%d: %X\n",i,cpu_inst->regfile_[i]);
+        //output Regfile
+        for(uint32_t i = 0; i <= 31; i++) {
+        printf("%d: %X\n",i,cpu_inst->regfile_[i]);
     }
     fflush(stdout);
 
-	return 0;
-	}*/
+        return 0;
+        }*/
