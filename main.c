@@ -488,6 +488,16 @@ UInstruction decode_u_instruction(const uint32_t *instruction) {
 	return u_instr;
 }
 
+void lui(CPU* cpu, const UInstruction* u_instruction) {
+	cpu->regfile_[u_instruction->rd] = u_instruction->imm;
+	cpu->pc_ += 4;
+}
+
+void auipc(CPU* cpu, const UInstruction* u_instruction) {
+	cpu->regfile_[u_instruction->rd] = cpu->pc_ + u_instruction->imm;
+	cpu->pc_ += 4;
+}
+
 /**
  * J Instructions
  */
