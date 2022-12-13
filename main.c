@@ -226,6 +226,21 @@ BInstruction decode_b_instruction(const uint32_t instruction) {
 	return b_instr;
 }
 
+uint32_t decode_u_imm(const uint32_t instruction) {
+	uint32_t imm = 0;
+	uint32_t imm32_12 = (instruction >> 12) & 0xFFFFF;
+	imm = imm32_12 << 12;
+	return imm;
+}
+
+UInstruction decode_u_instruction(const uint32_t instruction) {
+	UInstruction u_instr = {
+		.rd = decode_register(instruction, RD),
+		.imm = decode_u_imm(instruction)
+	};
+	return u_instr;
+}
+
 /**
  * Instruction fetch Instruction decode, Execute, Memory access, Write back
  */
