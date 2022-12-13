@@ -302,6 +302,7 @@ void lb(CPU* cpu, const IInstruction* i_instruction) {
 void lh(CPU* cpu, const IInstruction* i_instruction) {
 	cpu->regfile_[i_instruction->rd] =
 		*(uint16_t*) (cpu->data_mem_ + cpu->regfile_[i_instruction->rs1] + (int32_t) i_instruction->imm);
+	cpu->pc_ += 4;
 }
 
 void lw(CPU* cpu, const IInstruction* i_instruction) {
