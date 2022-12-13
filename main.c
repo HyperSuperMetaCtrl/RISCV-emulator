@@ -1,4 +1,5 @@
 
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -78,6 +79,13 @@ typedef struct {
 	uint8_t funct3;
 	uint8_t funct7;
 } RInstruction;
+
+typedef struct {
+	uint8_t rs1;
+	uint8_t rd;
+	uint8_t funct3;
+	size_t imm;
+} IInstruction;
 
 /**
  * Function to extract the opcode from an instruction
