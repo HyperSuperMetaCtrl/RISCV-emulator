@@ -87,6 +87,13 @@ typedef struct {
 	size_t imm;
 } IInstruction;
 
+typedef struct {
+	uint8_t rs1;
+	uint8_t rs2;
+	uint8_t funct3;
+	size_t imm;
+} SInstruction;
+
 /**
  * Function to extract the opcode from an instruction
  */
