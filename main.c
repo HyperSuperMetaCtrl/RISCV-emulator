@@ -525,6 +525,11 @@ JInstruction decode_j_instruction(const uint32_t *instruction) {
 	return j_instr;
 }
 
+void jal(CPU* cpu, const JInstruction* j_instruction) {
+	cpu->regfile_[j_instruction->rd] = cpu->pc_ + 4;
+	cpu->pc_ = cpu->pc_ + (int32_t) j_instruction->imm;
+}
+
 /**
  * Instruction fetch Instruction decode, Execute, Memory access, Write back
  */
