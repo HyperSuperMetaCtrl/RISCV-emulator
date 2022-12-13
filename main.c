@@ -151,15 +151,17 @@ uint8_t decode_funct7(const uint32_t instruction) {
 	return funct;
 }
 
-RInstruction decode_rinstruction(const uint32_t instruction) {
-	RInstruction rinstr = {
+RInstruction decode_r_instruction(const uint32_t instruction) {
+	RInstruction r_instr = {
 		.rs1 = decode_register(instruction, RS1),
 		.rs2 = decode_register(instruction, RS2),
 		.rd = decode_register(instruction, RD),
 		.funct3 = decode_funct3(instruction),
 		.funct7 = decode_funct7(instruction)
 	};
-	return rinstr;
+	return r_instr;
+}
+
 }
 /**
  * Instruction fetch Instruction decode, Execute, Memory access, Write back
