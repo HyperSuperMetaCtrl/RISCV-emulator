@@ -140,6 +140,16 @@ uint8_t decode_register(const uint32_t instruction, const enum register_position
 	}
 	return reg_val;
 }
+uint8_t decode_funct3(const uint32_t instruction) {
+	uint8_t funct = (instruction >> 12) & 0x7;
+	return funct;
+}
+
+uint8_t decode_funct7(const uint32_t instruction) {
+	uint8_t funct = (instruction >> 25) & 0x7f;
+	return funct;
+}
+
 /**
  * Instruction fetch Instruction decode, Execute, Memory access, Write back
  */
