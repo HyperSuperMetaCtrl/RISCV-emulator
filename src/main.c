@@ -404,6 +404,32 @@ void execute_i_instruction(CPU* cpu, const IInstruction* i_instruction) {
 	}
 }
 
+enum funct3_load {
+LB = 0x0,
+LH = 0x1,
+LW = 0x2,
+LBU = 0x4,
+LHU = 0x5,
+};
+void execute_load_instruction(CPU* cpu, const IInstruction* i_instruction) {
+	switch (i_instruction->funct3) {
+		case LB:
+			lb(cpu, i_instruction);
+			break;
+		case LH:
+			lh(cpu, i_instruction);
+			break;
+		case LW:
+			lw(cpu, i_instruction);
+			break;
+		case LBU:
+			lbu(cpu, i_instruction);
+			break;
+		case LHU:
+			lhu(cpu, i_instruction);
+			break;
+	}
+}
 /**
  * S Instructions
  */
