@@ -438,6 +438,38 @@ void bgeu(CPU* cpu, const BInstruction *b_instruction){
 }
 
 
+enum funct3_b {
+BEQ = 0x0,
+BNE = 0x1,
+BLT = 0x4,
+BGE = 0x5,
+BLTU = 0x6,
+BGEU = 0x7,
+};
+
+void execute_b_instruction(CPU* cpu, const BInstruction *b_instr) {
+	switch (b_instr->funct3) {
+			case BEQ:
+				beq(cpu, b_instr);
+				break;
+			case BNE:
+				bne(cpu, b_instr);
+				break;
+			case BLT:
+				blt(cpu, b_instr);
+				break;
+			case BGE:
+				bge(cpu, b_instr);
+				break;
+			case BLTU:
+				bltu(cpu, b_instr);
+				break;
+			case BGEU:
+				bgeu(cpu, b_instr);
+				break;
+		}
+
+}
 /**
  * U Instructions
  */
