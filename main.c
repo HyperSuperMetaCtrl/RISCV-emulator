@@ -181,6 +181,23 @@ IInstruction decode_i_instruction(const uint32_t instruction) {
 	return i_instr;
 }
 
+uint32_t decode_s_imm(const uint32_t instruction) {
+	uint32_t imm = 0;
+	uint8_t extent = (instruction >> 31) & 1;
+	uint16_t imm11_5 = (instruction >> 25) & 0x7F;
+	uint8_t imm4_0 = (instruction >> 7) & 0x1F;
+	imm = (0xFFFFF000 * extent) + (imm11_5 << 5) + imm4_0;
+	return imm;
+}
+
+SInstruction decode_s_instruction(const uint32_t instruction) {
+	SInstruction s_instr = {
+		.rs1 = decode_register(instruction, RS1),
+		.rs2 = decode_register(instruction, RS2),
+		.funct3 = decode_funct3(instruction),
+		.imm = decode_s_imm(instruction)
+	};
+	return s_instr;
 }
 /**
  * Instruction fetch Instruction decode, Execute, Memory access, Write back
