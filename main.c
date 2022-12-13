@@ -177,6 +177,11 @@ void sub(CPU* cpu, const RInstruction *r_instruction) {
 }
 
 void and(CPU* cpu, const RInstruction *r_instruction) {
+	cpu->regfile_[r_instruction->rd] = cpu->regfile_[r_instruction->rs1]
+		& cpu->regfile_[r_instruction->rs2];
+	cpu->pc_ += 4;
+}
+
 /**
  * I Instructions
  */
