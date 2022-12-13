@@ -1,5 +1,7 @@
-
-#include <stddef.h>
+/**
+ * Programmierprojekt 2022: RISCV-32I Emulator
+ * Author: Marcel Wiesenhöfer
+ * */
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -207,11 +209,11 @@ void srl(CPU *cpu, const RInstruction *r_instruction) {
       cpu->regfile_[r_instruction->rs1] >> cpu->regfile_[r_instruction->rs2];
   cpu->pc_ += 4;
 }
-// TODO change to arithmetic shift (keep sign)
+
 void sra(CPU *cpu, const RInstruction *r_instruction) {
   cpu->regfile_[r_instruction->rd] =
-      ((int32_t)cpu->regfile_[r_instruction->rs1]) >>
-      cpu->regfile_[r_instruction->rs2];
+      ((int32_t)cpu->regfile_[r_instruction->rs1] >>
+       (uint8_t)cpu->regfile_[r_instruction->rs2]);
   cpu->pc_ += 4;
 }
 
@@ -278,6 +280,9 @@ void execute_r_instruction(CPU *cpu, RInstruction *r_instruction) {
     break;
   case SLTU:
     sltu(cpu, r_instruction);
+    break;
+  default:
+    printf("Unknown r_instruction!\n");
     break;
   }
 }
@@ -346,7 +351,8 @@ void lbu(CPU *cpu, const IInstruction *i_instruction) {
 void lhu(CPU *cpu, const IInstruction *i_instruction) {
   cpu->regfile_[i_instruction->rd] =
       *(uint16_t *)(cpu->regfile_[i_instruction->rs1] + i_instruction->imm +
-                    cpu->data_mem_);
+                    cpu->data_mem_) &
+      0xFFFF;
   cpu->pc_ += 4;
 }
 
@@ -391,7 +397,9 @@ void andi(CPU *cpu, const IInstruction *i_instruction) {
 }
 
 void jalr(CPU *cpu, const IInstruction *i_instruction) {
-  cpu->regfile_[i_instruction->rd] = cpu->pc_ + 4;
+  if (i_instruction->rd != 0) {
+    cpu->regfile_[i_instruction->rd] = cpu->pc_ + 4;
+  }
   cpu->pc_ =
       (cpu->regfile_[i_instruction->rs1]) + ((int32_t)i_instruction->imm) &
       0xFFFFFFFE;
@@ -412,7 +420,8 @@ void srli(CPU *cpu, const RInstruction *r_instruction) {
 // fix arithmetic shift
 void srai(CPU *cpu, const RInstruction *r_instruction) {
   cpu->regfile_[r_instruction->rd] =
-      ((int32_t)cpu->regfile_[r_instruction->rs1]) >> r_instruction->rs2;
+      ((int32_t)cpu->regfile_[r_instruction->rs1] >>
+       (uint8_t)r_instruction->rs2);
   cpu->pc_ += 4;
 }
 
@@ -444,6 +453,9 @@ void execute_i_instruction(CPU *cpu, const IInstruction *i_instruction) {
   case ANDI:
     andi(cpu, i_instruction);
     break;
+  default:
+    printf("Unknown i_instruction!\n");
+    break;
   }
 }
 
@@ -463,6 +475,9 @@ void execute_load_instruction(CPU *cpu, const IInstruction *i_instruction) {
     break;
   case LHU:
     lhu(cpu, i_instruction);
+    break;
+  default:
+    printf("Unknown load_instruction!\n");
     break;
   }
 }
@@ -487,8 +502,8 @@ SInstruction decode_s_instruction(const uint32_t *instruction) {
 }
 
 void sb(CPU *cpu, const SInstruction *s_instruction) {
-  if ((uint32_t)(cpu->regfile_[s_instruction->rs1] +
-                 (int32_t)s_instruction->imm) == 0x5000) {
+  if (((uint32_t)(cpu->regfile_[s_instruction->rs1] +
+                  (int32_t)s_instruction->imm)) == 0x5000) {
     putchar((uint8_t)cpu->regfile_[s_instruction->rs2]);
   }
   cpu->data_mem_[cpu->regfile_[s_instruction->rs1] +
@@ -523,6 +538,9 @@ void execute_s_instruction(CPU *cpu, const SInstruction *s_instruction) {
     break;
   case SW:
     sw(cpu, s_instruction);
+    break;
+  default:
+    printf("Unknown s_instruction!\n");
     break;
   }
 }
@@ -635,16 +653,17 @@ void execute_b_instruction(CPU *cpu, const BInstruction *b_instr) {
   case BGEU:
     bgeu(cpu, b_instr);
     break;
+  default:
+    printf("Unknown b_instruction!\n");
+    break;
   }
 }
 /**
  * U Instructions
  */
 uint32_t decode_u_imm(const uint32_t *instruction) {
-  uint32_t imm = 0;
   uint32_t imm31_12 = (*instruction) & 0xFFFFF000;
-  imm = imm31_12;
-  return imm;
+  return imm31_12;
 }
 
 UInstruction decode_u_instruction(const uint32_t *instruction) {
@@ -763,6 +782,9 @@ void CPU_execute(CPU *cpu) {
     lui(cpu, &u_instr);
     break;
   }
+  default:
+    printf("Unknown opcode!\n");
+    break;
   }
   cpu->regfile_[0] = 0;
 }
@@ -965,10 +987,6 @@ void unit_tests() {
   test_decode_u_instruction();
   test_decode_j_instruction();
 }
-// int main() {
-//   unit_tests();
-//   return 0;
-// }
 
 int main(int argc, char *argv[]) {
   printf("C Praktikum\nHU Risc-V  Emulator 2022\n");
@@ -976,7 +994,7 @@ int main(int argc, char *argv[]) {
   CPU *cpu_inst;
 
   cpu_inst = CPU_init(argv[1], argv[2]);
-  for (uint32_t i = 0; i < 140000; i++) { // run 70000 cycles
+  for (uint32_t i = 0; i < 140000; i++) { // run 140000 cycles
     CPU_execute(cpu_inst);
   }
 
