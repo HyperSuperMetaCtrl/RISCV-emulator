@@ -293,6 +293,12 @@ IInstruction decode_i_instruction(const uint32_t *instruction) {
 	return i_instr;
 }
 
+void lb(CPU* cpu, const IInstruction *i_instruction) {
+	cpu->regfile_[i_instruction->rd] =
+		cpu->data_mem_[cpu->regfile_[i_instruction->rs1] + (int32_t) i_instruction->imm];
+	cpu->pc_ += 4;
+}
+
 /**
  * S Instructions
  */
