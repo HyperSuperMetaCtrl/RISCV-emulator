@@ -538,6 +538,35 @@ void CPU_execute(CPU* cpu) {
 	uint32_t instruction = *(uint32_t*)(cpu->instr_mem_ + (cpu->pc_  & 0xFFFFF));
 	enum opcode_decode opcode = decode_opcode(&instruction);
 	// TODO
+	switch (opcode) {
+		case R: {
+			RInstruction r_instr = decode_r_instruction(&instruction);
+			execute_r_instruction(cpu, &r_instr);
+			break;
+		}
+		case I:
+		case S: {
+			SInstruction s_instr = decode_s_instruction(&instruction);
+		}
+		case L:
+		case B:
+		case JALR:
+		case JAL: {
+			JInstruction j_instr = decode_j_instruction(&instruction);
+			jal(cpu, &j_instr);
+			break;
+		}
+		case AUIPC: {
+			UInstruction u_instr = decode_u_instruction(&instruction);
+			auipc(cpu, &u_instr);
+			break;
+		}
+		case LUI: {
+			UInstruction u_instr = decode_u_instruction(&instruction);
+			lui(cpu, &u_instr);
+			break;
+		}
+	}
 
 
 }
