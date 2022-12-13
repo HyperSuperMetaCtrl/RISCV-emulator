@@ -325,6 +325,11 @@ void addi(CPU* cpu, const IInstruction* i_instruction) {
 	cpu->pc_ += 4;
 }
 
+void slti(CPU* cpu, const IInstruction* i_instruction) {
+	cpu->regfile_[i_instruction->rd] = cpu->regfile_[i_instruction->rs1] < (int32_t) i_instruction->imm;
+	cpu->pc_ += 4;
+}
+
 /**
  * S Instructions
  */
