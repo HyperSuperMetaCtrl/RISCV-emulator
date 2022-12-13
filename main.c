@@ -384,6 +384,21 @@ BInstruction decode_b_instruction(const uint32_t *instruction) {
 	return b_instr;
 }
 
+void beq(CPU* cpu, const BInstruction *b_instruction) {
+	if (cpu->regfile_[b_instruction->rs1] == cpu->regfile_[b_instruction->rs2]) {
+		cpu->pc_ = cpu->pc_ + (int32_t) b_instruction->imm;
+	} else {
+		cpu->pc_ += 4;
+	}
+}
+void bne(CPU* cpu, const BInstruction *b_instruction){
+	if (cpu->regfile_[b_instruction->rs1] != cpu->regfile_[b_instruction->rs2]) {
+		cpu->pc_ = cpu->pc_ + (int32_t) b_instruction->imm;
+	} else {
+		cpu->pc_ += 4;
+	}
+}
+
 /**
  * U Instructions
  */
