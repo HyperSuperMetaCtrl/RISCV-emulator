@@ -68,6 +68,16 @@ void CPU_load_data_mem(CPU* cpu, const char* filename) {
 	fclose(input_file);
 	return;
 }
+/**
+ * structs for the different instruction types
+ */
+typedef struct {
+	uint8_t rs1;
+	uint8_t rs2;
+	uint8_t rd;
+	uint8_t funct3;
+	uint8_t funct7;
+} RInstruction;
 
 /**
  * Function to extract the opcode from an instruction
