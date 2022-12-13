@@ -353,6 +353,11 @@ void andi(CPU* cpu, const IInstruction* i_instruction) {
 		cpu->regfile_[i_instruction->rs1] & i_instruction->imm;
 	cpu->pc_ += 4;
 }
+
+void jalr(CPU* cpu, const IInstruction* i_instruction) {
+	cpu->regfile_[i_instruction->rd] = cpu->pc_ + 4;
+	cpu->pc_ = (cpu->regfile_[i_instruction->rs1]) + ((int32_t) i_instruction->imm);
+}
 /**
  * Instructions that take R-like instructions */
 void slli(CPU* cpu, const RInstruction* r_instruction) {
@@ -719,7 +724,7 @@ void CPU_execute(CPU* cpu) {
 		}
 		case JALR: {
 			IInstruction i_instr = decode_i_instruction(&instruction);
-			//jalr()
+			jalr(cpu, &i_instr);
 			break;
 		}
 		case JAL: {
