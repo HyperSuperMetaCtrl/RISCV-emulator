@@ -937,90 +937,34 @@ void unit_tests() {
   test_decode_funct7();
 
   test_decode_r_instruction();
+  test_decode_i_instruction();
+  test_decode_s_instruction();
+  test_decode_b_instruction();
+  test_decode_u_instruction();
+  test_decode_j_instruction();
 }
-int main() {
-  unit_tests();
+// int main() {
+//   unit_tests();
+//   return 0;
+// }
+
+int main(int argc, char *argv[]) {
+  printf("C Praktikum\nHU Risc-V  Emulator 2022\n");
+  CPU *cpu_inst;
+
+  cpu_inst = CPU_init(argv[1], argv[2]);
+  for (uint32_t i = 0; i < 140000; i++) { // run 70000 cycles
+    CPU_execute(cpu_inst);
+  }
+
+  printf("\n-----------------------RISC-V program "
+         "terminate------------------------\nRegfile values:\n");
+
+  // output Regfile
+  for (uint32_t i = 0; i <= 31; i++) {
+    printf("%d: %X\n", i, cpu_inst->regfile_[i]);
+  }
+  fflush(stdout);
+
   return 0;
 }
-
-int main_bak() {
-  // uint32_t instruction = 0xFE0AFFB3;
-  // uint32_t instruction = 0xDED26D83;
-  // uint32_t instruction = 0xBE4DD723;
-  // uint32_t instruction = 0x7E20FFE3;
-  // uint32_t instruction = 0xFFFFF237;
-  uint32_t instruction = 0xff0f056F;
-  enum opcode_decode opcode;
-
-  opcode = decode_opcode(&instruction);
-  switch (opcode) {
-  case R:;
-    RInstruction r_instr = decode_r_instruction(&instruction);
-    printf("R:\n");
-    printf("%x\n", r_instr.rs1);
-    printf("%x\n", r_instr.rs2);
-    printf("%x\n", r_instr.rd);
-    printf("%x\n", r_instr.funct3);
-    printf("%x\n", r_instr.funct7);
-    break;
-  case L:;
-    IInstruction i_instr = decode_i_instruction(&instruction);
-    printf("I:\n");
-    printf("%x\n", i_instr.rs1);
-    printf("%x\n", i_instr.rd);
-    printf("%x\n", i_instr.funct3);
-    printf("%x\n", i_instr.imm);
-    break;
-  case S:;
-    SInstruction s_instr = decode_s_instruction(&instruction);
-    printf("S:\n");
-    printf("%x\n", s_instr.rs1);
-    printf("%x\n", s_instr.rs2);
-    printf("%x\n", s_instr.funct3);
-    printf("%x\n", s_instr.imm);
-    break;
-  case B:;
-    BInstruction b_instr = decode_b_instruction(&instruction);
-    printf("B:\n");
-    printf("%x\n", b_instr.rs1);
-    printf("%x\n", b_instr.rs2);
-    printf("%x\n", b_instr.funct3);
-    printf("%x\n", b_instr.imm);
-    break;
-  case LUI:;
-    UInstruction u_instr = decode_u_instruction(&instruction);
-    printf("LUI:\n");
-    printf("%x\n", u_instr.rd);
-    printf("%x\n", u_instr.imm);
-    break;
-  case JAL:;
-    JInstruction j_instr = decode_j_instruction(&instruction);
-    printf("JAL:\n");
-    printf("%x\n", j_instr.rd);
-    printf("%x\n", j_instr.imm);
-    break;
-  default:
-    break;
-  }
-  printf("%#x", opcode);
-}
-/*int main(int argc, char* argv[]) {
-        printf("C Praktikum\nHU Risc-V  Emulator 2022\n");
-        CPU* cpu_inst;
-
-        cpu_inst = CPU_init(argv[1], argv[2]);
-    for(uint32_t i = 0; i <1000000; i++) { // run 70000 cycles
-        CPU_execute(cpu_inst);
-    }
-
-        printf("\n-----------------------RISC-V program
-   terminate------------------------\nRegfile values:\n");
-
-        //output Regfile
-        for(uint32_t i = 0; i <= 31; i++) {
-        printf("%d: %X\n",i,cpu_inst->regfile_[i]);
-    }
-    fflush(stdout);
-
-        return 0;
-        }*/
