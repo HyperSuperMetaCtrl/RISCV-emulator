@@ -679,13 +679,49 @@ void CPU_execute(CPU* cpu) {
 			execute_r_instruction(cpu, &r_instr);
 			break;
 		}
-		case I:
+		case I: {
+			uint8_t funct3 = decode_funct3(&instruction);
+			uint8_t funct7 = decode_funct7(&instruction);
+			//if SSLI
+			if (funct3 == 1) {
+				RInstruction r_instr = decode_r_instruction(&instruction);
+				slli(cpu, &r_instr);
+			}
+			//or srli/srai
+			else if (funct3 == 5) {
+				RInstruction r_instr = decode_r_instruction(&instruction);
+				if (funct7 == 0) {
+					srli(cpu, &r_instr);
+				} else {
+					srai(cpu, &r_instr);
+				}
+			}
+			//else execute normal I-Instruction
+			else {
+				IInstruction i_instr = decode_i_instruction(&instruction);
+				execute_i_instruction(cpu, &i_instr);
+			}
+			break;
+		}
 		case S: {
 			SInstruction s_instr = decode_s_instruction(&instruction);
+			break;
 		}
-		case L:
-		case B:
-		case JALR:
+		case L: {
+			IInstruction i_instr = decode_i_instruction(&instruction);
+			execute_load_instruction(cpu, &i_instr);
+			break;
+		}
+		case B: {
+			BInstruction b_instr = decode_b_instruction(&instruction);
+			execute_b_instruction(cpu, &b_instr);
+			break;
+		}
+		case JALR: {
+			IInstruction i_instr = decode_i_instruction(&instruction);
+			//jalr()
+			break;
+		}
 		case JAL: {
 			JInstruction j_instr = decode_j_instruction(&instruction);
 			jal(cpu, &j_instr);
@@ -702,9 +738,8 @@ void CPU_execute(CPU* cpu) {
 			break;
 		}
 	}
-
-
 }
+
 int main() {
 	//uint32_t instruction = 0xFE0AFFB3;
 	//uint32_t instruction = 0xDED26D83;
