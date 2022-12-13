@@ -6,7 +6,6 @@
 #include <sys/stat.h>
 #include <stdint.h>
 
-
 enum opcode_decode {R = 0x33, I = 0x13, S = 0x23, L = 0x03, B = 0x63, JALR = 0x67, JAL = 0x6F, AUIPC = 0x17, LUI = 0x37};
 
 typedef struct {
@@ -391,7 +390,7 @@ void beq(CPU* cpu, const BInstruction *b_instruction) {
 		cpu->pc_ += 4;
 	}
 }
-void bne(CPU* cpu, const BInstruction *b_instruction){
+void bne(CPU* cpu, const BInstruction *b_instruction) {
 	if (cpu->regfile_[b_instruction->rs1] != cpu->regfile_[b_instruction->rs2]) {
 		cpu->pc_ = cpu->pc_ + (int32_t) b_instruction->imm;
 	} else {
@@ -402,7 +401,7 @@ void bne(CPU* cpu, const BInstruction *b_instruction){
 /**
  * Signed Comps
  */
-void blt(CPU* cpu, const BInstruction *b_instruction){
+void blt(CPU* cpu, const BInstruction *b_instruction) {
 	if ((int32_t) cpu->regfile_[b_instruction->rs1] < (int32_t) cpu->regfile_[b_instruction->rs2]) {
 		cpu->pc_ = cpu->pc_ + (int32_t) b_instruction->imm;
 	} else {
@@ -410,7 +409,7 @@ void blt(CPU* cpu, const BInstruction *b_instruction){
 	}
 }
 
-void bge(CPU* cpu, const BInstruction *b_instruction){
+void bge(CPU* cpu, const BInstruction *b_instruction) {
 	if ((int32_t) cpu->regfile_[b_instruction->rs1] >= (int32_t) cpu->regfile_[b_instruction->rs2]) {
 		cpu->pc_ = cpu->pc_ + (int32_t) b_instruction->imm;
 	} else {
@@ -421,7 +420,7 @@ void bge(CPU* cpu, const BInstruction *b_instruction){
 /**
  * unsigned Comps
  */
-void bltu(CPU* cpu, const BInstruction *b_instruction){
+void bltu(CPU* cpu, const BInstruction *b_instruction) {
 	if (cpu->regfile_[b_instruction->rs1] < cpu->regfile_[b_instruction->rs2]) {
 		cpu->pc_ = cpu->pc_ + (int32_t) b_instruction->imm;
 	} else {
@@ -429,7 +428,7 @@ void bltu(CPU* cpu, const BInstruction *b_instruction){
 	}
 }
 
-void bgeu(CPU* cpu, const BInstruction *b_instruction){
+void bgeu(CPU* cpu, const BInstruction *b_instruction) {
 	if (cpu->regfile_[b_instruction->rs1] >= cpu->regfile_[b_instruction->rs2]) {
 		cpu->pc_ = cpu->pc_ + (int32_t) b_instruction->imm;
 	} else {
@@ -467,8 +466,7 @@ void execute_b_instruction(CPU* cpu, const BInstruction *b_instr) {
 			case BGEU:
 				bgeu(cpu, b_instr);
 				break;
-		}
-
+	}
 }
 /**
  * U Instructions
