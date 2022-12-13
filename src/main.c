@@ -184,26 +184,25 @@ void sub(CPU *cpu, const RInstruction *r_instruction) {
   cpu->pc_ += 4;
 }
 
-void and (CPU * cpu, const RInstruction *r_instruction) {
+void and_(CPU *cpu, const RInstruction *r_instruction) {
   cpu->regfile_[r_instruction->rd] =
       cpu->regfile_[r_instruction->rs1] & cpu->regfile_[r_instruction->rs2];
   cpu->pc_ += 4;
 }
 
-void or (CPU * cpu, const RInstruction *r_instruction) {
+void or_(CPU *cpu, const RInstruction *r_instruction) {
   cpu->regfile_[r_instruction->rd] =
       cpu->regfile_[r_instruction->rs1] | cpu->regfile_[r_instruction->rs2];
   cpu->pc_ += 4;
 }
 
-void xor
-    (CPU * cpu, const RInstruction *r_instruction) {
-      cpu->regfile_[r_instruction->rd] =
-          cpu->regfile_[r_instruction->rs1] ^ cpu->regfile_[r_instruction->rs2];
-      cpu->pc_ += 4;
-    }
+void xor_(CPU *cpu, const RInstruction *r_instruction) {
+  cpu->regfile_[r_instruction->rd] =
+      cpu->regfile_[r_instruction->rs1] ^ cpu->regfile_[r_instruction->rs2];
+  cpu->pc_ += 4;
+}
 
-    void srl(CPU *cpu, const RInstruction *r_instruction) {
+void srl(CPU *cpu, const RInstruction *r_instruction) {
   cpu->regfile_[r_instruction->rd] =
       cpu->regfile_[r_instruction->rs1] >> cpu->regfile_[r_instruction->rs2];
   cpu->pc_ += 4;
@@ -256,13 +255,13 @@ void execute_r_instruction(CPU *cpu, RInstruction *r_instruction) {
     }
     break;
   case AND:
-    and(cpu, r_instruction);
+    and_(cpu, r_instruction);
     break;
   case OR:
-    or (cpu, r_instruction);
+    or_(cpu, r_instruction);
     break;
   case XOR:
-    xor(cpu, r_instruction);
+    xor_(cpu, r_instruction);
     break;
   case SRL_SRA:
     if (r_instruction->funct7 == 0) {
