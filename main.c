@@ -241,6 +241,29 @@ UInstruction decode_u_instruction(const uint32_t instruction) {
 	return u_instr;
 }
 
+uint32_t decode_j_imm(const uint32_t instruction) {
+	uint32_t imm = 0;
+	uint8_t extend = (instruction >> 31) & 1;
+	uint8_t imm20 = extend;
+	uint16_t imm19_12 = (instruction >> 12) & 0xFF;
+	uint8_t imm11 = (instruction >> 20) & 1;
+	uint16_t imm10_1 = (instruction >> 21) & 0x3FF;
+
+	imm = (extend * 0xFFE00000)
+		+ (imm20 << 20)
+		+ (imm19_12 << 12)
+		+ (imm11 << 11)
+		+ (imm10_1 << 1);
+	return imm;
+}
+JInstruction decode_j_instruction(const uint32_t instruction) {
+	JInstruction j_instr = {
+		.rd = decode_register(instruction, RD),
+		.imm = decode_j_imm(instruction)
+	};
+	return j_instr;
+}
+
 /**
  * Instruction fetch Instruction decode, Execute, Memory access, Write back
  */
