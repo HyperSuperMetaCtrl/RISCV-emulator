@@ -113,7 +113,7 @@ typedef struct {
 /**
  * Function to extract the opcode from an instruction
  */
-static inline enum opcode_decode decode_opcode(const uint32_t *instruction) {
+static inline enum opcode_decode decode_opcode(const uint32_t* instruction) {
 	enum opcode_decode opcode;
 	// read the first 7 Bytes of the instruction
 	opcode = (*instruction & 0x7F);
@@ -124,7 +124,7 @@ static inline enum opcode_decode decode_opcode(const uint32_t *instruction) {
  * Function for extracting register operand values from instructions
  */
 enum register_position {RS1, RS2, RD};
-uint8_t decode_register(const uint32_t *instruction, const enum register_position reg_pos) {
+uint8_t decode_register(const uint32_t* instruction, const enum register_position reg_pos) {
 	uint8_t reg_val;
 	switch (reg_pos) {
 	case RS1:
@@ -140,19 +140,19 @@ uint8_t decode_register(const uint32_t *instruction, const enum register_positio
 	return reg_val;
 }
 
-uint8_t decode_funct3(const uint32_t *instruction) {
+uint8_t decode_funct3(const uint32_t* instruction) {
 	uint8_t funct = (*instruction >> 12) & 0x7;
 	return funct;
 }
 
-uint8_t decode_funct7(const uint32_t *instruction) {
+uint8_t decode_funct7(const uint32_t* instruction) {
 	uint8_t funct = (*instruction >> 25) & 0x7f;
 	return funct;
 }
 /**
  * R Instructions
  */
-RInstruction decode_r_instruction(const uint32_t *instruction) {
+RInstruction decode_r_instruction(const uint32_t* instruction) {
 	RInstruction r_instr = {
 		.rs1 = decode_register(instruction, RS1),
 		.rs2 = decode_register(instruction, RS2),
@@ -163,31 +163,31 @@ RInstruction decode_r_instruction(const uint32_t *instruction) {
 	return r_instr;
 }
 
-void add(CPU* cpu, const RInstruction *r_instruction) {
+void add(CPU* cpu, const RInstruction* r_instruction) {
 	cpu->regfile_[r_instruction->rd] = cpu->regfile_[r_instruction->rs1]
 		+ cpu->regfile_[r_instruction->rs2];
 	cpu->pc_ += 4;
 }
 
-void sub(CPU* cpu, const RInstruction *r_instruction) {
+void sub(CPU* cpu, const RInstruction* r_instruction) {
 	cpu->regfile_[r_instruction->rd] = cpu->regfile_[r_instruction->rs1]
 		- cpu->regfile_[r_instruction->rs2];
 	cpu->pc_ += 4;
 }
 
-void and(CPU* cpu, const RInstruction *r_instruction) {
+void and(CPU* cpu, const RInstruction* r_instruction) {
 	cpu->regfile_[r_instruction->rd] = cpu->regfile_[r_instruction->rs1]
 		& cpu->regfile_[r_instruction->rs2];
 	cpu->pc_ += 4;
 }
 
-void or(CPU* cpu, const RInstruction *r_instruction) {
+void or(CPU* cpu, const RInstruction* r_instruction) {
 	cpu->regfile_[r_instruction->rd] = cpu->regfile_[r_instruction->rs1]
 		| cpu->regfile_[r_instruction->rs2];
 	cpu->pc_ += 4;
 }
 
-void xor(CPU* cpu, const RInstruction *r_instruction) {
+void xor(CPU* cpu, const RInstruction* r_instruction) {
 	cpu->regfile_[r_instruction->rd] = cpu->regfile_[r_instruction->rs1]
 		^ cpu->regfile_[r_instruction->rs2];
 	cpu->pc_ += 4;
@@ -234,7 +234,7 @@ OR = 0x6,
 AND = 0x7
 };
 
-void execute_r_instruction(CPU* cpu, RInstruction *r_instruction) {
+void execute_r_instruction(CPU* cpu, RInstruction* r_instruction) {
 	switch (r_instruction->funct3) {
 		case ADD_SUB:
 			if (r_instruction->funct7 == 0) {
@@ -274,7 +274,7 @@ void execute_r_instruction(CPU* cpu, RInstruction *r_instruction) {
 /**
  * I Instructions
  */
-uint32_t decode_i_imm(const uint32_t *instruction) {
+uint32_t decode_i_imm(const uint32_t* instruction) {
 	uint32_t imm = 0;
 	uint8_t extend = (*instruction >> 31) & 1;
 	uint16_t imm11_0 = (*instruction >> 20) & 0xFFF;
@@ -283,7 +283,7 @@ uint32_t decode_i_imm(const uint32_t *instruction) {
 	return imm;
 }
 
-IInstruction decode_i_instruction(const uint32_t *instruction) {
+IInstruction decode_i_instruction(const uint32_t* instruction) {
 	IInstruction i_instr = {
 		.rs1 = decode_register(instruction, RS1),
 		.rd = decode_register(instruction, RD),
@@ -293,28 +293,28 @@ IInstruction decode_i_instruction(const uint32_t *instruction) {
 	return i_instr;
 }
 
-void lb(CPU* cpu, const IInstruction *i_instruction) {
+void lb(CPU* cpu, const IInstruction* i_instruction) {
 	cpu->regfile_[i_instruction->rd] =
 		cpu->data_mem_[cpu->regfile_[i_instruction->rs1] + (int32_t) i_instruction->imm];
 	cpu->pc_ += 4;
 }
 
-void lh(CPU* cpu, IInstruction *i_instruction) {
+void lh(CPU* cpu, IInstruction* i_instruction) {
 	cpu->regfile_[i_instruction->rd] =
 		*(uint16_t*) (cpu->data_mem_ + cpu->regfile_[i_instruction->rs1] + (int32_t) i_instruction->imm);
 }
 
-void lw(CPU* cpu, IInstruction *i_instruction) {
+void lw(CPU* cpu, IInstruction* i_instruction) {
 	cpu->regfile_[i_instruction->rd] =
 		*(uint32_t*) (cpu->data_mem_ + cpu->regfile_[i_instruction->rs1] + (int32_t) i_instruction->imm);
 }
 
-void lbu(CPU* cpu, const IInstruction *i_instruction) {
+void lbu(CPU* cpu, const IInstruction* i_instruction) {
 	cpu->regfile_[i_instruction->rd] =
 		cpu->data_mem_[cpu->regfile_[i_instruction->rs1] + i_instruction->imm];
 }
 
-void lhu(CPU* cpu, IInstruction *i_instruction) {
+void lhu(CPU* cpu, IInstruction* i_instruction) {
 	cpu->regfile_[i_instruction->rd] =
 		*(uint16_t*) (cpu->data_mem_ + cpu->regfile_[i_instruction->rs1] + i_instruction->imm);
 }
@@ -322,7 +322,7 @@ void lhu(CPU* cpu, IInstruction *i_instruction) {
 /**
  * S Instructions
  */
-uint32_t decode_s_imm(const uint32_t *instruction) {
+uint32_t decode_s_imm(const uint32_t* instruction) {
 	uint32_t imm = 0;
 	uint8_t extend = (*instruction >> 31) & 1;
 	uint16_t imm11_5 = (*instruction >> 25) & 0x7F;
@@ -331,7 +331,7 @@ uint32_t decode_s_imm(const uint32_t *instruction) {
 	return imm;
 }
 
-SInstruction decode_s_instruction(const uint32_t *instruction) {
+SInstruction decode_s_instruction(const uint32_t* instruction) {
 	SInstruction s_instr = {
 		.rs1 = decode_register(instruction, RS1),
 		.rs2 = decode_register(instruction, RS2),
@@ -383,7 +383,7 @@ void execute_s_instruction(CPU* cpu, const SInstruction* s_instruction) {
 /**
  * B Instructions
  */
-uint32_t decode_b_imm(const uint32_t *instruction) {
+uint32_t decode_b_imm(const uint32_t* instruction) {
 	uint32_t imm = 0;
 	uint8_t extend = (*instruction >> 31) & 1;
 	uint8_t imm12 = extend;
@@ -399,7 +399,7 @@ uint32_t decode_b_imm(const uint32_t *instruction) {
 	return imm;
 }
 
-BInstruction decode_b_instruction(const uint32_t *instruction) {
+BInstruction decode_b_instruction(const uint32_t* instruction) {
 	BInstruction b_instr = {
 		.rs1 = decode_register(instruction, RS1),
 		.rs2 = decode_register(instruction, RS2),
@@ -409,14 +409,14 @@ BInstruction decode_b_instruction(const uint32_t *instruction) {
 	return b_instr;
 }
 
-void beq(CPU* cpu, const BInstruction *b_instruction) {
+void beq(CPU* cpu, const BInstruction* b_instruction) {
 	if (cpu->regfile_[b_instruction->rs1] == cpu->regfile_[b_instruction->rs2]) {
 		cpu->pc_ = cpu->pc_ + (int32_t) b_instruction->imm;
 	} else {
 		cpu->pc_ += 4;
 	}
 }
-void bne(CPU* cpu, const BInstruction *b_instruction) {
+void bne(CPU* cpu, const BInstruction* b_instruction) {
 	if (cpu->regfile_[b_instruction->rs1] != cpu->regfile_[b_instruction->rs2]) {
 		cpu->pc_ = cpu->pc_ + (int32_t) b_instruction->imm;
 	} else {
@@ -427,7 +427,7 @@ void bne(CPU* cpu, const BInstruction *b_instruction) {
 /**
  * Signed Comps
  */
-void blt(CPU* cpu, const BInstruction *b_instruction) {
+void blt(CPU* cpu, const BInstruction* b_instruction) {
 	if ((int32_t) cpu->regfile_[b_instruction->rs1] < (int32_t) cpu->regfile_[b_instruction->rs2]) {
 		cpu->pc_ = cpu->pc_ + (int32_t) b_instruction->imm;
 	} else {
@@ -435,7 +435,7 @@ void blt(CPU* cpu, const BInstruction *b_instruction) {
 	}
 }
 
-void bge(CPU* cpu, const BInstruction *b_instruction) {
+void bge(CPU* cpu, const BInstruction* b_instruction) {
 	if ((int32_t) cpu->regfile_[b_instruction->rs1] >= (int32_t) cpu->regfile_[b_instruction->rs2]) {
 		cpu->pc_ = cpu->pc_ + (int32_t) b_instruction->imm;
 	} else {
@@ -446,7 +446,7 @@ void bge(CPU* cpu, const BInstruction *b_instruction) {
 /**
  * unsigned Comps
  */
-void bltu(CPU* cpu, const BInstruction *b_instruction) {
+void bltu(CPU* cpu, const BInstruction* b_instruction) {
 	if (cpu->regfile_[b_instruction->rs1] < cpu->regfile_[b_instruction->rs2]) {
 		cpu->pc_ = cpu->pc_ + (int32_t) b_instruction->imm;
 	} else {
@@ -454,7 +454,7 @@ void bltu(CPU* cpu, const BInstruction *b_instruction) {
 	}
 }
 
-void bgeu(CPU* cpu, const BInstruction *b_instruction) {
+void bgeu(CPU* cpu, const BInstruction* b_instruction) {
 	if (cpu->regfile_[b_instruction->rs1] >= cpu->regfile_[b_instruction->rs2]) {
 		cpu->pc_ = cpu->pc_ + (int32_t) b_instruction->imm;
 	} else {
@@ -472,7 +472,7 @@ BLTU = 0x6,
 BGEU = 0x7,
 };
 
-void execute_b_instruction(CPU* cpu, const BInstruction *b_instr) {
+void execute_b_instruction(CPU* cpu, const BInstruction* b_instr) {
 	switch (b_instr->funct3) {
 			case BEQ:
 				beq(cpu, b_instr);
@@ -497,14 +497,14 @@ void execute_b_instruction(CPU* cpu, const BInstruction *b_instr) {
 /**
  * U Instructions
  */
-uint32_t decode_u_imm(const uint32_t *instruction) {
+uint32_t decode_u_imm(const uint32_t* instruction) {
 	uint32_t imm = 0;
 	uint32_t imm32_12 = (*instruction >> 12) & 0xFFFFF;
 	imm = imm32_12 << 12;
 	return imm;
 }
 
-UInstruction decode_u_instruction(const uint32_t *instruction) {
+UInstruction decode_u_instruction(const uint32_t* instruction) {
 	UInstruction u_instr = {
 		.rd = decode_register(instruction, RD),
 		.imm = decode_u_imm(instruction)
@@ -525,7 +525,7 @@ void auipc(CPU* cpu, const UInstruction* u_instruction) {
 /**
  * J Instructions
  */
-uint32_t decode_j_imm(const uint32_t *instruction) {
+uint32_t decode_j_imm(const uint32_t* instruction) {
 	uint32_t imm = 0;
 	uint8_t extend = (*instruction >> 31) & 1;
 	uint8_t imm20 = extend;
@@ -541,7 +541,7 @@ uint32_t decode_j_imm(const uint32_t *instruction) {
 	return imm;
 }
 
-JInstruction decode_j_instruction(const uint32_t *instruction) {
+JInstruction decode_j_instruction(const uint32_t* instruction) {
 	JInstruction j_instr = {
 		.rd = decode_register(instruction, RD),
 		.imm = decode_j_imm(instruction)
