@@ -69,6 +69,15 @@ void CPU_load_data_mem(CPU* cpu, const char* filename) {
 	return;
 }
 
+/**
+ * Function to extract the opcode from an instruction
+ */
+static inline enum opcode_decode decode_opcode(const uint32_t instruction) {
+	enum opcode_decode opcode;
+	// read the first 7 Bytes of the instruction
+	opcode = (instruction & 0x7F);
+	return opcode;
+}
 
 /**
  * Instruction fetch Instruction decode, Execute, Memory access, Write back
@@ -76,15 +85,20 @@ void CPU_load_data_mem(CPU* cpu, const char* filename) {
 void CPU_execute(CPU* cpu) {
 
 	uint32_t instruction = *(uint32_t*)(cpu->instr_mem_ + (cpu->pc_  & 0xFFFFF));
-
+	enum opcode_decode opcode = decode_opcode(instruction);
 	// TODO
 
 
 }
+int main() {
+	uint32_t instruction = 0xFFFFFF43;
+	enum opcode_decode opcode;
 
-int main(int argc, char* argv[]) {
+	opcode = decode_opcode(instruction);
+	printf("%#x", opcode);
+}
+/*int main(int argc, char* argv[]) {
 	printf("C Praktikum\nHU Risc-V  Emulator 2022\n");
-
 	CPU* cpu_inst;
 
 	cpu_inst = CPU_init(argv[1], argv[2]);
@@ -101,4 +115,4 @@ int main(int argc, char* argv[]) {
     fflush(stdout);
 
 	return 0;
-}
+	}*/
