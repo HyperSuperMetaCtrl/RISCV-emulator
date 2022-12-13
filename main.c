@@ -114,10 +114,10 @@ typedef struct {
 /**
  * Function to extract the opcode from an instruction
  */
-static inline enum opcode_decode decode_opcode(const uint32_t instruction) {
+static inline enum opcode_decode decode_opcode(const uint32_t *instruction) {
 	enum opcode_decode opcode;
 	// read the first 7 Bytes of the instruction
-	opcode = (instruction & 0x7F);
+	opcode = (*instruction & 0x7F);
 	return opcode;
 }
 
@@ -125,33 +125,35 @@ static inline enum opcode_decode decode_opcode(const uint32_t instruction) {
  * Function for extracting register operand values from instructions
  */
 enum register_position {RS1, RS2, RD};
-uint8_t decode_register(const uint32_t instruction, const enum register_position reg_pos) {
+uint8_t decode_register(const uint32_t *instruction, const enum register_position reg_pos) {
 	uint8_t reg_val;
 	switch (reg_pos) {
 	case RS1:
-		reg_val = (instruction >> 15) & 0x1f;
+		reg_val = (*instruction >> 15) & 0x1f;
 		break;
 	case RS2:
-		reg_val = (instruction >> 20) & 0x1f;
+		reg_val = (*instruction >> 20) & 0x1f;
 		break;
 	case RD:
-		reg_val = (instruction >> 7) & 0x1f;
+		reg_val = (*instruction >> 7) & 0x1f;
 		break;
 	}
 	return reg_val;
 }
 
-uint8_t decode_funct3(const uint32_t instruction) {
-	uint8_t funct = (instruction >> 12) & 0x7;
+uint8_t decode_funct3(const uint32_t *instruction) {
+	uint8_t funct = (*instruction >> 12) & 0x7;
 	return funct;
 }
 
-uint8_t decode_funct7(const uint32_t instruction) {
-	uint8_t funct = (instruction >> 25) & 0x7f;
+uint8_t decode_funct7(const uint32_t *instruction) {
+	uint8_t funct = (*instruction >> 25) & 0x7f;
 	return funct;
 }
-
-RInstruction decode_r_instruction(const uint32_t instruction) {
+/**
+ * R Instructions
+ */
+RInstruction decode_r_instruction(const uint32_t *instruction) {
 	RInstruction r_instr = {
 		.rs1 = decode_register(instruction, RS1),
 		.rs2 = decode_register(instruction, RS2),
@@ -162,16 +164,19 @@ RInstruction decode_r_instruction(const uint32_t instruction) {
 	return r_instr;
 }
 
-uint32_t decode_i_imm(const uint32_t instruction) {
+/**
+ * I Instructions
+ */
+uint32_t decode_i_imm(const uint32_t *instruction) {
 	uint32_t imm = 0;
-	uint8_t extend = (instruction >> 31) & 1;
-	uint16_t imm11_0 = (instruction >> 20) & 0xFFF;
+	uint8_t extend = (*instruction >> 31) & 1;
+	uint16_t imm11_0 = (*instruction >> 20) & 0xFFF;
 	imm = (extend * 0xFFFFF000) + imm11_0;
 
 	return imm;
 }
 
-IInstruction decode_i_instruction(const uint32_t instruction) {
+IInstruction decode_i_instruction(const uint32_t *instruction) {
 	IInstruction i_instr = {
 		.rs1 = decode_register(instruction, RS1),
 		.rd = decode_register(instruction, RD),
@@ -181,16 +186,19 @@ IInstruction decode_i_instruction(const uint32_t instruction) {
 	return i_instr;
 }
 
-uint32_t decode_s_imm(const uint32_t instruction) {
+/**
+ * S Instructions
+ */
+uint32_t decode_s_imm(const uint32_t *instruction) {
 	uint32_t imm = 0;
-	uint8_t extend = (instruction >> 31) & 1;
-	uint16_t imm11_5 = (instruction >> 25) & 0x7F;
-	uint8_t imm4_0 = (instruction >> 7) & 0x1F;
+	uint8_t extend = (*instruction >> 31) & 1;
+	uint16_t imm11_5 = (*instruction >> 25) & 0x7F;
+	uint8_t imm4_0 = (*instruction >> 7) & 0x1F;
 	imm = (0xFFFFF000 * extend) + (imm11_5 << 5) + imm4_0;
 	return imm;
 }
 
-SInstruction decode_s_instruction(const uint32_t instruction) {
+SInstruction decode_s_instruction(const uint32_t *instruction) {
 	SInstruction s_instr = {
 		.rs1 = decode_register(instruction, RS1),
 		.rs2 = decode_register(instruction, RS2),
@@ -200,13 +208,18 @@ SInstruction decode_s_instruction(const uint32_t instruction) {
 	return s_instr;
 }
 
-uint32_t decode_b_imm(uint32_t instruction) {
+void execute_s_instruction(CPU* cpu, RInstruction r_instruction);
+
+/**
+ * B Instructions
+ */
+uint32_t decode_b_imm(const uint32_t *instruction) {
 	uint32_t imm = 0;
-	uint8_t extend = (instruction >> 31) & 1;
+	uint8_t extend = (*instruction >> 31) & 1;
 	uint8_t imm12 = extend;
-	uint8_t imm11 = (instruction >> 7) & 1;
-	uint8_t imm10_5 = (instruction >> 25) & 0x3F;
-	uint8_t imm4_1 = (instruction >> 8) & 0xF;
+	uint8_t imm11 = (*instruction >> 7) & 1;
+	uint8_t imm10_5 = (*instruction >> 25) & 0x3F;
+	uint8_t imm4_1 = (*instruction >> 8) & 0xF;
 
 	imm = (extend * 0xFFFFE000)
 		+ (imm12 << 12)
@@ -216,7 +229,7 @@ uint32_t decode_b_imm(uint32_t instruction) {
 	return imm;
 }
 
-BInstruction decode_b_instruction(const uint32_t instruction) {
+BInstruction decode_b_instruction(const uint32_t *instruction) {
 	BInstruction b_instr = {
 		.rs1 = decode_register(instruction, RS1),
 		.rs2 = decode_register(instruction, RS2),
@@ -226,14 +239,17 @@ BInstruction decode_b_instruction(const uint32_t instruction) {
 	return b_instr;
 }
 
-uint32_t decode_u_imm(const uint32_t instruction) {
+/**
+ * U Instructions
+ */
+uint32_t decode_u_imm(const uint32_t *instruction) {
 	uint32_t imm = 0;
-	uint32_t imm32_12 = (instruction >> 12) & 0xFFFFF;
+	uint32_t imm32_12 = (*instruction >> 12) & 0xFFFFF;
 	imm = imm32_12 << 12;
 	return imm;
 }
 
-UInstruction decode_u_instruction(const uint32_t instruction) {
+UInstruction decode_u_instruction(const uint32_t *instruction) {
 	UInstruction u_instr = {
 		.rd = decode_register(instruction, RD),
 		.imm = decode_u_imm(instruction)
@@ -241,13 +257,16 @@ UInstruction decode_u_instruction(const uint32_t instruction) {
 	return u_instr;
 }
 
-uint32_t decode_j_imm(const uint32_t instruction) {
+/**
+ * J Instructions
+ */
+uint32_t decode_j_imm(const uint32_t *instruction) {
 	uint32_t imm = 0;
-	uint8_t extend = (instruction >> 31) & 1;
+	uint8_t extend = (*instruction >> 31) & 1;
 	uint8_t imm20 = extend;
-	uint16_t imm19_12 = (instruction >> 12) & 0xFF;
-	uint8_t imm11 = (instruction >> 20) & 1;
-	uint16_t imm10_1 = (instruction >> 21) & 0x3FF;
+	uint16_t imm19_12 = (*instruction >> 12) & 0xFF;
+	uint8_t imm11 = (*instruction >> 20) & 1;
+	uint16_t imm10_1 = (*instruction >> 21) & 0x3FF;
 
 	imm = (extend * 0xFFE00000)
 		+ (imm20 << 20)
@@ -256,7 +275,8 @@ uint32_t decode_j_imm(const uint32_t instruction) {
 		+ (imm10_1 << 1);
 	return imm;
 }
-JInstruction decode_j_instruction(const uint32_t instruction) {
+
+JInstruction decode_j_instruction(const uint32_t *instruction) {
 	JInstruction j_instr = {
 		.rd = decode_register(instruction, RD),
 		.imm = decode_j_imm(instruction)
@@ -270,7 +290,7 @@ JInstruction decode_j_instruction(const uint32_t instruction) {
 void CPU_execute(CPU* cpu) {
 
 	uint32_t instruction = *(uint32_t*)(cpu->instr_mem_ + (cpu->pc_  & 0xFFFFF));
-	enum opcode_decode opcode = decode_opcode(instruction);
+	enum opcode_decode opcode = decode_opcode(&instruction);
 	// TODO
 
 
