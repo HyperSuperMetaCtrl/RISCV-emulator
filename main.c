@@ -84,31 +84,31 @@ typedef struct {
 	uint8_t rs1;
 	uint8_t rd;
 	uint8_t funct3;
-	size_t imm;
+	uint32_t imm;
 } IInstruction;
 
 typedef struct {
 	uint8_t rs1;
 	uint8_t rs2;
 	uint8_t funct3;
-	size_t imm;
+	uint32_t imm;
 } SInstruction;
 
 typedef struct {
 	uint8_t rs1;
 	uint8_t rs2;
 	uint8_t funct3;
-	size_t imm;
+	uint32_t imm;
 } BInstruction;
 
 typedef struct {
 	uint8_t rd;
-	size_t imm;
+	uint32_t imm;
 } UInstruction;
 
 typedef struct {
 	uint8_t rd;
-	size_t imm;
+	uint32_t imm;
 } JInstruction;
 
 /**
