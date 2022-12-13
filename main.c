@@ -150,6 +150,16 @@ uint8_t decode_funct7(const uint32_t instruction) {
 	return funct;
 }
 
+RInstruction decode_rinstruction(const uint32_t instruction) {
+	RInstruction rinstr = {
+		.rs1 = decode_register(instruction, RS1),
+		.rs2 = decode_register(instruction, RS2),
+		.rd = decode_register(instruction, RD),
+		.funct3 = decode_funct3(instruction),
+		.funct7 = decode_funct7(instruction)
+	};
+	return rinstr;
+}
 /**
  * Instruction fetch Instruction decode, Execute, Memory access, Write back
  */
