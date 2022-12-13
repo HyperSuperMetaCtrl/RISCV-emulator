@@ -101,6 +101,11 @@ typedef struct {
 	size_t imm;
 } BInstruction;
 
+typedef struct {
+	uint8_t rd;
+	size_t imm;
+} UInstruction;
+
 /**
  * Function to extract the opcode from an instruction
  */
