@@ -330,6 +330,11 @@ void slti(CPU* cpu, const IInstruction* i_instruction) {
 	cpu->pc_ += 4;
 }
 
+void sltiu(CPU* cpu, const IInstruction* i_instruction) {
+	cpu->regfile_[i_instruction->rd] = cpu->regfile_[i_instruction->rs1] < i_instruction->imm;
+	cpu->pc_ += 4;
+}
+
 /**
  * S Instructions
  */
