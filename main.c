@@ -315,6 +315,26 @@ SInstruction decode_s_instruction(const uint32_t *instruction) {
 	};
 	return s_instr;
 }
+//TODO check for data_mem_ bounds and mmio (output auf stdout)
+void sb(CPU* cpu, const SInstruction* s_instruction) {
+	cpu->data_mem_[cpu->regfile_[s_instruction->rs1] + (int32_t) s_instruction->imm]
+		= (uint8_t) cpu->regfile_[s_instruction->rs2];
+}
+
+//TODO check for data_mem_ bounds and mmio (output auf stdout)
+void sh(CPU* cpu, const SInstruction* s_instruction) {
+	*(uint16_t*) (cpu->data_mem_ + cpu->regfile_[s_instruction->rs1] + s_instruction->imm)
+		= (uint16_t) cpu->regfile_[s_instruction->rs2];
+	cpu->pc_ += 4;
+}
+
+//TODO check for data_mem_ bounds and mmio (output auf stdout)
+void sw(CPU* cpu, const SInstruction* s_instruction) {
+	*(uint32_t*) (cpu->data_mem_ + cpu->regfile_[s_instruction->rs1] + s_instruction->imm)
+		= (uint32_t) cpu->regfile_[s_instruction->rs2];
+	cpu->pc_ += 4;
+}
+
 
 void execute_s_instruction(CPU* cpu, RInstruction r_instruction);
 
