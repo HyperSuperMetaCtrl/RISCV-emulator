@@ -810,8 +810,9 @@ void test_decode_r_instruction() {
   printf("test_decode_r_instruction(): ");
   RInstruction ri = {
       .rs1 = 0x1F, .rs2 = 0x1F, .rd = 0x1F, .funct3 = 0x7, .funct7 = 0x7F};
-  uint32_t instruction = (ri.rs1 << 15) + (ri.rs2 << 20) + (ri.rd << 7) +
-                         (ri.funct3 << 12) + (ri.funct7 << 25);
+  uint32_t instruction = 0;
+  instruction = (ri.rs1 << 15) + (ri.rs2 << 20) + (ri.rd << 7) +
+                (ri.funct3 << 12) + (ri.funct7 << 25);
   RInstruction ri_d = decode_r_instruction(&instruction);
   TESTEQ(ri.rs1, ri_d.rs1);
   TESTEQ(ri.rs2, ri_d.rs2);
