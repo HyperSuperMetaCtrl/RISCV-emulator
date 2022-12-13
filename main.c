@@ -400,6 +400,25 @@ void bne(CPU* cpu, const BInstruction *b_instruction){
 }
 
 /**
+ * Signed Comps
+ */
+void blt(CPU* cpu, const BInstruction *b_instruction){
+	if ((int32_t) cpu->regfile_[b_instruction->rs1] < (int32_t) cpu->regfile_[b_instruction->rs2]) {
+		cpu->pc_ = cpu->pc_ + (int32_t) b_instruction->imm;
+	} else {
+		cpu->pc_ += 4;
+	}
+}
+
+void bge(CPU* cpu, const BInstruction *b_instruction){
+	if ((int32_t) cpu->regfile_[b_instruction->rs1] >= (int32_t) cpu->regfile_[b_instruction->rs2]) {
+		cpu->pc_ = cpu->pc_ + (int32_t) b_instruction->imm;
+	} else {
+		cpu->pc_ += 4;
+	}
+}
+
+/**
  * U Instructions
  */
 uint32_t decode_u_imm(const uint32_t *instruction) {
