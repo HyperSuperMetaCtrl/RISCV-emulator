@@ -393,7 +393,7 @@ void srli(CPU *cpu, const RInstruction *r_instruction) {
 
 void srai(CPU *cpu, const RInstruction *r_instruction) {
   cpu->regfile_[r_instruction->rd] =
-      cpu->regfile_[r_instruction->rs1] >> (int8_t)r_instruction->rs2;
+      (int32_t)cpu->regfile_[r_instruction->rs1] >> r_instruction->rs2;
   cpu->pc_ += 4;
 }
 
@@ -402,7 +402,7 @@ enum funct3_i {
   SLTI = 0x2,
   SLTIU = 0x3,
   XORI = 0x4,
-  ORI = 0x5,
+  ORI = 0x6,
   ANDI = 0x7,
 };
 void execute_i_instruction(CPU *cpu, const IInstruction *i_instruction) {
