@@ -676,7 +676,8 @@ void jal(CPU *cpu, const JInstruction *j_instruction) {
  * Instruction fetch Instruction decode, Execute, Memory access, Write back
  */
 void CPU_execute(CPU *cpu) {
-
+  // check if r0 = 0
+  cpu->regfile_[0] = 0;
   uint32_t instruction = *(uint32_t *)(cpu->instr_mem_ + (cpu->pc_ & 0xFFFFF));
   enum opcode_decode opcode = decode_opcode(&instruction);
   // TODO
