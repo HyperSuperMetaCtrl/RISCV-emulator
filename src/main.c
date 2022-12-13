@@ -304,6 +304,11 @@ void lh(CPU* cpu, IInstruction *i_instruction) {
 		*(uint16_t*) (cpu->data_mem_ + cpu->regfile_[i_instruction->rs1] + (int32_t) i_instruction->imm);
 }
 
+void lw(CPU* cpu, IInstruction *i_instruction) {
+	cpu->regfile_[i_instruction->rd] =
+		*(uint32_t*) (cpu->data_mem_ + cpu->regfile_[i_instruction->rs1] + (int32_t) i_instruction->imm);
+}
+
 /**
  * S Instructions
  */
