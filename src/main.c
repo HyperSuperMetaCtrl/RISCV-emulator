@@ -299,12 +299,12 @@ void lb(CPU* cpu, const IInstruction* i_instruction) {
 	cpu->pc_ += 4;
 }
 
-void lh(CPU* cpu, IInstruction* i_instruction) {
+void lh(CPU* cpu, const IInstruction* i_instruction) {
 	cpu->regfile_[i_instruction->rd] =
 		*(uint16_t*) (cpu->data_mem_ + cpu->regfile_[i_instruction->rs1] + (int32_t) i_instruction->imm);
 }
 
-void lw(CPU* cpu, IInstruction* i_instruction) {
+void lw(CPU* cpu, const IInstruction* i_instruction) {
 	cpu->regfile_[i_instruction->rd] =
 		*(uint32_t*) (cpu->data_mem_ + cpu->regfile_[i_instruction->rs1] + (int32_t) i_instruction->imm);
 }
@@ -314,7 +314,7 @@ void lbu(CPU* cpu, const IInstruction* i_instruction) {
 		cpu->data_mem_[cpu->regfile_[i_instruction->rs1] + i_instruction->imm];
 }
 
-void lhu(CPU* cpu, IInstruction* i_instruction) {
+void lhu(CPU* cpu, const IInstruction* i_instruction) {
 	cpu->regfile_[i_instruction->rd] =
 		*(uint16_t*) (cpu->data_mem_ + cpu->regfile_[i_instruction->rs1] + i_instruction->imm);
 }
