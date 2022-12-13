@@ -129,17 +129,18 @@ uint8_t decode_register(const uint32_t instruction, const enum register_position
 	uint8_t reg_val;
 	switch (reg_pos) {
 	case RS1:
-		reg_val = (instruction >> 15) & 0x7f;
+		reg_val = (instruction >> 15) & 0x1f;
 		break;
 	case RS2:
-		reg_val = (instruction >> 20) & 0x7f;
+		reg_val = (instruction >> 20) & 0x1f;
 		break;
 	case RD:
-		reg_val = (instruction >> 7) & 0x7f;
+		reg_val = (instruction >> 7) & 0x1f;
 		break;
 	}
 	return reg_val;
 }
+
 uint8_t decode_funct3(const uint32_t instruction) {
 	uint8_t funct = (instruction >> 12) & 0x7;
 	return funct;
