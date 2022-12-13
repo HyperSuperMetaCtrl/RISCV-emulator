@@ -125,7 +125,7 @@ typedef struct {
  */
 static inline enum opcode_decode decode_opcode(const uint32_t *instruction) {
   enum opcode_decode opcode;
-  // read the first 7 Bytes of the instruction
+  // read the first 7 Bits of the instruction
   opcode = (*instruction & 0x7F);
   return opcode;
 }
@@ -207,10 +207,10 @@ void srl(CPU *cpu, const RInstruction *r_instruction) {
       cpu->regfile_[r_instruction->rs1] >> cpu->regfile_[r_instruction->rs2];
   cpu->pc_ += 4;
 }
-
+// TODO change to arithmetic shift (keep sign)
 void sra(CPU *cpu, const RInstruction *r_instruction) {
   cpu->regfile_[r_instruction->rd] =
-      (int32_t)cpu->regfile_[r_instruction->rs1] >>
+      ((int32_t)cpu->regfile_[r_instruction->rs1]) >>
       cpu->regfile_[r_instruction->rs2];
   cpu->pc_ += 4;
 }
@@ -285,10 +285,17 @@ void execute_r_instruction(CPU *cpu, RInstruction *r_instruction) {
 /**
  * I Instructions
  */
+enum funct3_load {
+  LB = 0x0,
+  LH = 0x1,
+  LW = 0x2,
+  LBU = 0x4,
+  LHU = 0x5,
+};
 uint32_t decode_i_imm(const uint32_t *instruction) {
   uint32_t imm = 0;
-  uint8_t extend = (*instruction >> 31) & 1;
-  uint16_t imm11_0 = (*instruction >> 20) & 0xFFF;
+  uint32_t extend = (*instruction >> 31) & 1;
+  uint32_t imm11_0 = (*instruction >> 20) & 0xFFF;
   imm = (extend * 0xFFFFF000) + imm11_0;
 
   return imm;
@@ -303,36 +310,43 @@ IInstruction decode_i_instruction(const uint32_t *instruction) {
 }
 
 void lb(CPU *cpu, const IInstruction *i_instruction) {
-  cpu->regfile_[i_instruction->rd] =
-      cpu->data_mem_[cpu->regfile_[i_instruction->rs1] +
-                     (int32_t)i_instruction->imm];
+  uint8_t data_to_load = 0;
+  uint8_t sign_extend;
+  data_to_load =
+      cpu->data_mem_[cpu->regfile_[i_instruction->rs1] + i_instruction->imm];
+  sign_extend = (data_to_load >> 7) & 1;
+  cpu->regfile_[i_instruction->rd] = (0xFFFFFF00 * sign_extend) + data_to_load;
   cpu->pc_ += 4;
 }
 
 void lh(CPU *cpu, const IInstruction *i_instruction) {
-  cpu->regfile_[i_instruction->rd] =
-      *(uint16_t *)(cpu->data_mem_ + cpu->regfile_[i_instruction->rs1] +
-                    (int32_t)i_instruction->imm);
+  uint16_t data_to_load = 0;
+  uint8_t sign_extend;
+  data_to_load = *(uint16_t *)(cpu->regfile_[i_instruction->rs1] +
+                               i_instruction->imm + cpu->data_mem_);
+  sign_extend = (data_to_load >> 15) & 1;
+  cpu->regfile_[i_instruction->rd] = (0xFFFF0000 * sign_extend) + data_to_load;
   cpu->pc_ += 4;
 }
 
 void lw(CPU *cpu, const IInstruction *i_instruction) {
   cpu->regfile_[i_instruction->rd] =
-      *(uint32_t *)(cpu->data_mem_ + cpu->regfile_[i_instruction->rs1] +
-                    (int32_t)i_instruction->imm);
+      *(uint32_t *)(cpu->regfile_[i_instruction->rs1] + i_instruction->imm +
+                    cpu->data_mem_);
   cpu->pc_ += 4;
 }
 
 void lbu(CPU *cpu, const IInstruction *i_instruction) {
   cpu->regfile_[i_instruction->rd] =
-      cpu->data_mem_[cpu->regfile_[i_instruction->rs1] + i_instruction->imm];
+      cpu->data_mem_[cpu->regfile_[i_instruction->rs1] + i_instruction->imm] &
+      0xFF;
   cpu->pc_ += 4;
 }
 
 void lhu(CPU *cpu, const IInstruction *i_instruction) {
   cpu->regfile_[i_instruction->rd] =
-      *(uint16_t *)(cpu->data_mem_ + cpu->regfile_[i_instruction->rs1] +
-                    i_instruction->imm);
+      *(uint16_t *)(cpu->regfile_[i_instruction->rs1] + i_instruction->imm +
+                    cpu->data_mem_);
   cpu->pc_ += 4;
 }
 
@@ -344,13 +358,17 @@ void addi(CPU *cpu, const IInstruction *i_instruction) {
 
 void slti(CPU *cpu, const IInstruction *i_instruction) {
   cpu->regfile_[i_instruction->rd] =
-      cpu->regfile_[i_instruction->rs1] < (int32_t)i_instruction->imm;
+      (int32_t)cpu->regfile_[i_instruction->rs1] < (int32_t)i_instruction->imm;
   cpu->pc_ += 4;
 }
 
 void sltiu(CPU *cpu, const IInstruction *i_instruction) {
-  cpu->regfile_[i_instruction->rd] =
-      cpu->regfile_[i_instruction->rs1] < i_instruction->imm;
+  if (i_instruction->imm == 1 && i_instruction->rs1 == 0) {
+    cpu->regfile_[i_instruction->rd] = 0;
+  } else {
+    cpu->regfile_[i_instruction->rd] =
+        cpu->regfile_[i_instruction->rs1] < i_instruction->imm;
+  }
   cpu->pc_ += 4;
 }
 
@@ -375,7 +393,8 @@ void andi(CPU *cpu, const IInstruction *i_instruction) {
 void jalr(CPU *cpu, const IInstruction *i_instruction) {
   cpu->regfile_[i_instruction->rd] = cpu->pc_ + 4;
   cpu->pc_ =
-      (cpu->regfile_[i_instruction->rs1]) + ((int32_t)i_instruction->imm);
+      (cpu->regfile_[i_instruction->rs1]) + ((int32_t)i_instruction->imm) &
+      0xFFFFFFFE;
 }
 /**
  * Instructions that take R-like instructions */
@@ -390,10 +409,10 @@ void srli(CPU *cpu, const RInstruction *r_instruction) {
       cpu->regfile_[r_instruction->rs1] >> r_instruction->rs2;
   cpu->pc_ += 4;
 }
-
+// fix arithmetic shift
 void srai(CPU *cpu, const RInstruction *r_instruction) {
   cpu->regfile_[r_instruction->rd] =
-      (int32_t)cpu->regfile_[r_instruction->rs1] >> r_instruction->rs2;
+      ((int32_t)cpu->regfile_[r_instruction->rs1]) >> r_instruction->rs2;
   cpu->pc_ += 4;
 }
 
@@ -428,13 +447,6 @@ void execute_i_instruction(CPU *cpu, const IInstruction *i_instruction) {
   }
 }
 
-enum funct3_load {
-  LB = 0x0,
-  LH = 0x1,
-  LW = 0x2,
-  LBU = 0x4,
-  LHU = 0x5,
-};
 void execute_load_instruction(CPU *cpu, const IInstruction *i_instruction) {
   switch (i_instruction->funct3) {
   case LB:
@@ -459,9 +471,9 @@ void execute_load_instruction(CPU *cpu, const IInstruction *i_instruction) {
  */
 uint32_t decode_s_imm(const uint32_t *instruction) {
   uint32_t imm = 0;
-  uint8_t extend = (*instruction >> 31) & 1;
-  uint16_t imm11_5 = (*instruction >> 25) & 0x7F;
-  uint8_t imm4_0 = (*instruction >> 7) & 0x1F;
+  uint32_t extend = (*instruction >> 31) & 1;
+  uint32_t imm11_5 = (*instruction >> 25) & 0x7F;
+  uint32_t imm4_0 = (*instruction >> 7) & 0x1F;
   imm = (0xFFFFF000 * extend) + (imm11_5 << 5) + imm4_0;
   return imm;
 }
@@ -473,7 +485,7 @@ SInstruction decode_s_instruction(const uint32_t *instruction) {
                           .imm = decode_s_imm(instruction)};
   return s_instr;
 }
-// TODO check for data_mem_ bounds and mmio (output auf stdout)
+
 void sb(CPU *cpu, const SInstruction *s_instruction) {
   if ((uint32_t)(cpu->regfile_[s_instruction->rs1] +
                  (int32_t)s_instruction->imm) == 0x5000) {
@@ -485,7 +497,6 @@ void sb(CPU *cpu, const SInstruction *s_instruction) {
   cpu->pc_ += 4;
 }
 
-// TODO check for data_mem_ bounds and mmio (output auf stdout)
 void sh(CPU *cpu, const SInstruction *s_instruction) {
   *(uint16_t *)(cpu->data_mem_ +
                 (cpu->regfile_[s_instruction->rs1] + s_instruction->imm)) =
@@ -493,7 +504,6 @@ void sh(CPU *cpu, const SInstruction *s_instruction) {
   cpu->pc_ += 4;
 }
 
-// TODO check for data_mem_ bounds and mmio (output auf stdout)
 void sw(CPU *cpu, const SInstruction *s_instruction) {
   *(uint32_t *)(cpu->data_mem_ +
                 (cpu->regfile_[s_instruction->rs1] + s_instruction->imm)) =
@@ -522,11 +532,11 @@ void execute_s_instruction(CPU *cpu, const SInstruction *s_instruction) {
  */
 uint32_t decode_b_imm(const uint32_t *instruction) {
   uint32_t imm = 0;
-  uint8_t extend = (*instruction >> 31) & 1;
-  uint8_t imm12 = extend;
-  uint8_t imm11 = (*instruction >> 7) & 1;
-  uint8_t imm10_5 = (*instruction >> 25) & 0x3F;
-  uint8_t imm4_1 = (*instruction >> 8) & 0xF;
+  uint32_t extend = (*instruction >> 31) & 1;
+  uint32_t imm12 = extend;
+  uint32_t imm11 = (*instruction >> 7) & 1;
+  uint32_t imm10_5 = (*instruction >> 25) & 0x3F;
+  uint32_t imm4_1 = (*instruction >> 8) & 0xF;
 
   imm = (extend * 0xFFFFE000) + (imm12 << 12) + (imm11 << 11) + (imm10_5 << 5) +
         (imm4_1 << 1);
@@ -632,8 +642,8 @@ void execute_b_instruction(CPU *cpu, const BInstruction *b_instr) {
  */
 uint32_t decode_u_imm(const uint32_t *instruction) {
   uint32_t imm = 0;
-  uint32_t imm32_12 = (*instruction >> 12) & 0xFFFFF;
-  imm = imm32_12 << 12;
+  uint32_t imm31_12 = (*instruction) & 0xFFFFF000;
+  imm = imm31_12;
   return imm;
 }
 
@@ -658,11 +668,11 @@ void auipc(CPU *cpu, const UInstruction *u_instruction) {
  */
 uint32_t decode_j_imm(const uint32_t *instruction) {
   uint32_t imm = 0;
-  uint8_t extend = (*instruction >> 31) & 1;
-  uint8_t imm20 = extend;
-  uint16_t imm19_12 = (*instruction >> 12) & 0xFF;
-  uint8_t imm11 = (*instruction >> 20) & 1;
-  uint16_t imm10_1 = (*instruction >> 21) & 0x3FF;
+  uint32_t extend = (*instruction >> 31) & 1;
+  uint32_t imm20 = extend;
+  uint32_t imm19_12 = (*instruction >> 12) & 0xFF;
+  uint32_t imm11 = (*instruction >> 20) & 1;
+  uint32_t imm10_1 = (*instruction >> 21) & 0x3FF;
 
   imm = (extend * 0xFFE00000) + (imm20 << 20) + (imm19_12 << 12) +
         (imm11 << 11) + (imm10_1 << 1);
@@ -684,7 +694,6 @@ void jal(CPU *cpu, const JInstruction *j_instruction) {
  * Instruction fetch Instruction decode, Execute, Memory access, Write back
  */
 void CPU_execute(CPU *cpu) {
-  // check if r0 = 0
   cpu->regfile_[0] = 0;
   uint32_t instruction = *(uint32_t *)(cpu->instr_mem_ + (cpu->pc_ & 0xFFFFF));
   enum opcode_decode opcode = decode_opcode(&instruction);
@@ -755,6 +764,7 @@ void CPU_execute(CPU *cpu) {
     break;
   }
   }
+  cpu->regfile_[0] = 0;
 }
 /**
  * Unit Tests
@@ -962,6 +972,7 @@ void unit_tests() {
 
 int main(int argc, char *argv[]) {
   printf("C Praktikum\nHU Risc-V  Emulator 2022\n");
+  // unit_tests();
   CPU *cpu_inst;
 
   cpu_inst = CPU_init(argv[1], argv[2]);
