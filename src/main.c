@@ -353,7 +353,25 @@ void andi(CPU* cpu, const IInstruction* i_instruction) {
 		cpu->regfile_[i_instruction->rs1] & i_instruction->imm;
 	cpu->pc_ += 4;
 }
+/**
+ * Instructions that take R-like instructions */
+void slli(CPU* cpu, const RInstruction* r_instruction) {
+	cpu->regfile_[r_instruction->rd] =
+		cpu->regfile_[r_instruction->rs1] << r_instruction->rs2;
+	cpu->pc_ += 4;
+}
 
+void srli(CPU* cpu, const RInstruction* r_instruction) {
+	cpu->regfile_[r_instruction->rd] =
+		cpu->regfile_[r_instruction->rs1] >> r_instruction->rs2;
+	cpu->pc_ += 4;
+}
+
+void srai(CPU* cpu, const RInstruction* r_instruction) {
+	cpu->regfile_[r_instruction->rd] =
+		cpu->regfile_[r_instruction->rs1] >> (int8_t) r_instruction->rs2;
+	cpu->pc_ += 4;
+}
 /**
  * S Instructions
  */
