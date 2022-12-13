@@ -472,23 +472,28 @@ SInstruction decode_s_instruction(const uint32_t *instruction) {
 }
 // TODO check for data_mem_ bounds and mmio (output auf stdout)
 void sb(CPU *cpu, const SInstruction *s_instruction) {
+  if ((uint32_t)(cpu->regfile_[s_instruction->rs1] +
+                 (int32_t)s_instruction->imm) == 0x5000) {
+    putchar((uint8_t)cpu->regfile_[s_instruction->rs2]);
+  }
   cpu->data_mem_[cpu->regfile_[s_instruction->rs1] +
                  (int32_t)s_instruction->imm] =
       (uint8_t)cpu->regfile_[s_instruction->rs2];
+  cpu->pc_ += 4;
 }
 
 // TODO check for data_mem_ bounds and mmio (output auf stdout)
 void sh(CPU *cpu, const SInstruction *s_instruction) {
-  *(uint16_t *)(cpu->data_mem_ + cpu->regfile_[s_instruction->rs1] +
-                s_instruction->imm) =
+  *(uint16_t *)(cpu->data_mem_ +
+                (cpu->regfile_[s_instruction->rs1] + s_instruction->imm)) =
       (uint16_t)cpu->regfile_[s_instruction->rs2];
   cpu->pc_ += 4;
 }
 
 // TODO check for data_mem_ bounds and mmio (output auf stdout)
 void sw(CPU *cpu, const SInstruction *s_instruction) {
-  *(uint32_t *)(cpu->data_mem_ + cpu->regfile_[s_instruction->rs1] +
-                s_instruction->imm) =
+  *(uint32_t *)(cpu->data_mem_ +
+                (cpu->regfile_[s_instruction->rs1] + s_instruction->imm)) =
       (uint32_t)cpu->regfile_[s_instruction->rs2];
   cpu->pc_ += 4;
 }
@@ -779,7 +784,8 @@ void test_decode_register() {
   uint8_t rs1 = 0x2;
   uint8_t rs2 = 0x5;
   uint8_t rd = 0x7;
-  uint32_t instruction = (rs2 << 20) + (rs1 << 15) + (rd << 7);
+  uint32_t instruction = 0;
+  instruction = (rs2 << 20) + (rs1 << 15) + (rd << 7);
 
   printf("test_decode_register(): ");
   TESTEQ(decode_register(&instruction, RS1), rs1);
@@ -790,7 +796,8 @@ void test_decode_register() {
 
 void test_decode_funct3() {
   uint8_t funct3 = 0x7;
-  uint32_t instruction = funct3 << 12;
+  uint32_t instruction = 0;
+  instruction = funct3 << 12;
 
   printf("test_decode_funct3(): ");
   TESTEQ(decode_funct3(&instruction), funct3);
@@ -799,7 +806,8 @@ void test_decode_funct3() {
 
 void test_decode_funct7() {
   uint8_t funct7 = 0x7F;
-  uint32_t instruction = funct7 << 25;
+  uint32_t instruction = 0;
+  instruction = funct7 << 25;
 
   printf("test_decode_funct7(): ");
   TESTEQ(decode_funct7(&instruction), funct7);
