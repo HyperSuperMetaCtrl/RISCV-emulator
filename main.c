@@ -122,6 +122,25 @@ static inline enum opcode_decode decode_opcode(const uint32_t instruction) {
 }
 
 /**
+ * Function for extracting register operand values from instructions
+ */
+enum register_position {RS1, RS2, RD};
+uint8_t decode_register(const uint32_t instruction, const enum register_position reg_pos) {
+	uint8_t reg_val;
+	switch (reg_pos) {
+	case RS1:
+		reg_val = (instruction >> 15) & 0x7f;
+		break;
+	case RS2:
+		reg_val = (instruction >> 20) & 0x7f;
+		break;
+	case RD:
+		reg_val = (instruction >> 7) & 0x7f;
+		break;
+	}
+	return reg_val;
+}
+/**
  * Instruction fetch Instruction decode, Execute, Memory access, Write back
  */
 void CPU_execute(CPU* cpu) {
