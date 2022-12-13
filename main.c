@@ -335,8 +335,25 @@ void sw(CPU* cpu, const SInstruction* s_instruction) {
 	cpu->pc_ += 4;
 }
 
+enum funct3_s {
+SB = 0x0,
+SH = 0x1,
+SW = 0x2
+};
 
-void execute_s_instruction(CPU* cpu, RInstruction r_instruction);
+void execute_s_instruction(CPU* cpu, const SInstruction* s_instruction) {
+	switch (s_instruction->funct3) {
+		case SB:
+			sb(cpu, s_instruction);
+			break;
+		case SH:
+			sh(cpu, s_instruction);
+			break;
+		case SW:
+			sw(cpu, s_instruction);
+			break;
+	}
+}
 
 /**
  * B Instructions
