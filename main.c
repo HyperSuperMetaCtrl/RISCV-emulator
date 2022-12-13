@@ -164,9 +164,9 @@ RInstruction decode_r_instruction(const uint32_t instruction) {
 
 uint32_t decode_i_imm(const uint32_t instruction) {
 	uint32_t imm = 0;
-	uint8_t extent = (instruction >> 31) & 1;
+	uint8_t extend = (instruction >> 31) & 1;
 	uint16_t imm11_0 = (instruction >> 20) & 0xFFF;
-	imm = (extent * 0xFFFFF000) + imm11_0;
+	imm = (extend * 0xFFFFF000) + imm11_0;
 
 	return imm;
 }
@@ -183,10 +183,10 @@ IInstruction decode_i_instruction(const uint32_t instruction) {
 
 uint32_t decode_s_imm(const uint32_t instruction) {
 	uint32_t imm = 0;
-	uint8_t extent = (instruction >> 31) & 1;
+	uint8_t extend = (instruction >> 31) & 1;
 	uint16_t imm11_5 = (instruction >> 25) & 0x7F;
 	uint8_t imm4_0 = (instruction >> 7) & 0x1F;
-	imm = (0xFFFFF000 * extent) + (imm11_5 << 5) + imm4_0;
+	imm = (0xFFFFF000 * extend) + (imm11_5 << 5) + imm4_0;
 	return imm;
 }
 
