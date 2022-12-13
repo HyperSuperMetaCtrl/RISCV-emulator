@@ -710,6 +710,7 @@ void CPU_execute(CPU* cpu) {
 		}
 		case S: {
 			SInstruction s_instr = decode_s_instruction(&instruction);
+			execute_s_instruction(cpu, &s_instr);
 			break;
 		}
 		case L: {
