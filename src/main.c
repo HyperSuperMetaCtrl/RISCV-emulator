@@ -372,6 +372,38 @@ void srai(CPU* cpu, const RInstruction* r_instruction) {
 		cpu->regfile_[r_instruction->rs1] >> (int8_t) r_instruction->rs2;
 	cpu->pc_ += 4;
 }
+
+enum funct3_i {
+ADDI = 0x0,
+SLTI = 0x2,
+SLTIU = 0x3,
+XORI = 0x4,
+ORI = 0x5,
+ANDI = 0x7,
+};
+void execute_i_instruction(CPU* cpu, const IInstruction* i_instruction) {
+	switch (i_instruction->funct3) {
+		case ADDI:
+			addi(cpu, i_instruction);
+			break;
+		case SLTI:
+			slti(cpu, i_instruction);
+			break;
+		case SLTIU:
+			sltiu(cpu, i_instruction);
+			break;
+		case XORI:
+			xori(cpu, i_instruction);
+			break;
+		case ORI:
+			ori(cpu, i_instruction);
+			break;
+		case ANDI:
+			andi(cpu, i_instruction);
+			break;
+	}
+}
+
 /**
  * S Instructions
  */
