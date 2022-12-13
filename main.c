@@ -224,6 +224,17 @@ void sltu(CPU* cpu, const RInstruction* r_instruction) {
 	cpu->pc_ += 4;
 }
 
+enum funct3_r {
+ADD_SUB = 0x0,
+SLL = 0x1,
+SLT = 0x2,
+SLTU = 0x3,
+XOR = 0x4,
+SRL_SRA = 0x5,
+OR = 0x6,
+AND = 0x7
+};
+
 /**
  * I Instructions
  */
