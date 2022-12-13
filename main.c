@@ -419,6 +419,26 @@ void bge(CPU* cpu, const BInstruction *b_instruction){
 }
 
 /**
+ * unsigned Comps
+ */
+void bltu(CPU* cpu, const BInstruction *b_instruction){
+	if (cpu->regfile_[b_instruction->rs1] < cpu->regfile_[b_instruction->rs2]) {
+		cpu->pc_ = cpu->pc_ + (int32_t) b_instruction->imm;
+	} else {
+		cpu->pc_ += 4;
+	}
+}
+
+void bgeu(CPU* cpu, const BInstruction *b_instruction){
+	if (cpu->regfile_[b_instruction->rs1] >= cpu->regfile_[b_instruction->rs2]) {
+		cpu->pc_ = cpu->pc_ + (int32_t) b_instruction->imm;
+	} else {
+		cpu->pc_ += 4;
+	}
+}
+
+
+/**
  * U Instructions
  */
 uint32_t decode_u_imm(const uint32_t *instruction) {
