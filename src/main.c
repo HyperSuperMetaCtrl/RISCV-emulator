@@ -314,6 +314,11 @@ void lbu(CPU* cpu, const IInstruction *i_instruction) {
 		cpu->data_mem_[cpu->regfile_[i_instruction->rs1] + i_instruction->imm];
 }
 
+void lhu(CPU* cpu, IInstruction *i_instruction) {
+	cpu->regfile_[i_instruction->rd] =
+		*(uint16_t*) (cpu->data_mem_ + cpu->regfile_[i_instruction->rs1] + i_instruction->imm);
+}
+
 /**
  * S Instructions
  */
